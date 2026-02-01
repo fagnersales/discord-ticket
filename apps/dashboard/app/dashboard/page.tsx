@@ -2,9 +2,10 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@discord-ticket/convex/convex/_generated/api";
-import { Server, AlertCircle, Loader2, Users } from "lucide-react";
+import { Server, AlertCircle, Loader2, Users, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Card } from "@/components/ui/card";
 
 type UserGuild = {
   id: string;
@@ -46,7 +47,6 @@ export default function DashboardPage() {
     fetchUserGuilds();
   }, []);
 
-  // Find servers where user is admin AND bot is present
   const matchedServers =
     userGuilds && botServers
       ? userGuilds
@@ -73,8 +73,10 @@ export default function DashboardPage() {
   if (loading || botServers === undefined) {
     return (
       <div className="flex flex-col items-center justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        <p className="mt-4 text-muted-foreground">Loading servers...</p>
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+        <p className="mt-4 text-muted-foreground">Loading your servers...</p>
       </div>
     );
   }
@@ -82,9 +84,11 @@ export default function DashboardPage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-        <p className="text-lg font-medium text-destructive">{error}</p>
-        <p className="text-sm text-muted-foreground mt-2 max-w-md">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-destructive/10">
+          <AlertCircle className="h-8 w-8 text-destructive" />
+        </div>
+        <p className="mt-4 text-lg font-medium">{error}</p>
+        <p className="mt-2 max-w-md text-sm text-muted-foreground">
           Make sure you've signed in with Discord and granted the necessary permissions.
         </p>
       </div>
@@ -94,58 +98,76 @@ export default function DashboardPage() {
   if (!matchedServers || matchedServers.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <Server className="h-16 w-16 text-muted-foreground/30 mb-4" />
-        <p className="text-lg font-medium">No servers found</p>
-        <p className="text-sm text-muted-foreground mt-2 max-w-md">
-          You need to be an admin of a server where the bot is installed.
+        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-muted">
+          <Server className="h-10 w-10 text-muted-foreground" />
+        </div>
+        <p className="mt-4 text-lg font-medium">No servers found</p>
+        <p className="mt-2 max-w-md text-sm text-muted-foreground">
+          You need to be an administrator of a server where the bot is installed.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in">
+      {/* Header */}
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Select a Server</h2>
-        <p className="text-muted-foreground">
-          Choose a server to manage its ticket settings
+        <h1 className="text-2xl font-semibold tracking-tight">Select a Server</h1>
+        <p className="mt-1 text-muted-foreground">
+          Choose a server to manage its ticket system
         </p>
       </div>
 
+      {/* Server grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {matchedServers.map((server) => (
+        {matchedServers.map((server, index) => (
           <Link
             key={server.id}
             href={`/dashboard/${server.id}`}
-            className="group flex flex-col rounded-xl border bg-card p-6 transition-all hover:border-primary/50 hover:shadow-md"
+            className="animate-slide-up"
+            style={{ animationDelay: `${index * 50}ms` }}
           >
-            <div className="flex items-center gap-4">
-              {server.icon ? (
-                <img
-                  src={getGuildIconUrl(server.id, server.icon)!}
-                  alt=""
-                  className="h-14 w-14 rounded-full"
-                />
-              ) : (
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-                  <Server className="h-7 w-7 text-muted-foreground" />
+            <Card
+              variant="interactive"
+              className="group p-5"
+            >
+              <div className="flex items-center gap-4">
+                {/* Server icon */}
+                {server.icon ? (
+                  <img
+                    src={getGuildIconUrl(server.id, server.icon)!}
+                    alt=""
+                    className="h-14 w-14 rounded-2xl object-cover shadow-sm transition-transform duration-200 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted transition-colors group-hover:bg-muted/80">
+                    <Server className="h-7 w-7 text-muted-foreground" />
+                  </div>
+                )}
+
+                {/* Server info */}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold transition-colors group-hover:text-primary">
+                    {server.name}
+                  </p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    {server.owner ? "Owner" : "Administrator"}
+                  </p>
+                </div>
+
+                {/* Arrow */}
+                <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-hover:translate-x-1 group-hover:text-primary" />
+              </div>
+
+              {/* Member count */}
+              {server.memberCount && (
+                <div className="mt-4 flex items-center gap-2 border-t pt-4 text-sm text-muted-foreground">
+                  <Users className="h-4 w-4" />
+                  <span>{server.memberCount.toLocaleString()} members</span>
                 </div>
               )}
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold truncate group-hover:text-primary transition-colors">
-                  {server.name}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {server.owner ? "Owner" : "Administrator"}
-                </p>
-              </div>
-            </div>
-            {server.memberCount && (
-              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-                <Users className="h-4 w-4" />
-                <span>{server.memberCount.toLocaleString()} members</span>
-              </div>
-            )}
+            </Card>
           </Link>
         ))}
       </div>

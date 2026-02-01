@@ -11,7 +11,21 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Shield, Ban, ListChecks, LayoutPanelLeft, ChevronRight, Save, X, Plus } from "lucide-react";
+import {
+  Settings,
+  Shield,
+  Ban,
+  ListChecks,
+  LayoutPanelLeft,
+  ChevronRight,
+  Save,
+  X,
+  Plus,
+  Loader2,
+  Hash,
+  Clock,
+  Users,
+} from "lucide-react";
 import { ChannelSelect, RoleSelect, MemberSelect } from "@/components/discord";
 
 export default function SettingsPage() {
@@ -36,11 +50,9 @@ export default function SettingsPage() {
     adminRoleIds: [] as string[],
   });
 
-  // Blacklist management
   const [blacklistUserId, setBlacklistUserId] = useState<string | undefined>(undefined);
   const [addingToBlacklist, setAddingToBlacklist] = useState(false);
 
-  // Initialize form with existing settings
   useEffect(() => {
     if (settings) {
       setForm({
@@ -55,7 +67,16 @@ export default function SettingsPage() {
   }, [settings]);
 
   if (settings === undefined || options === undefined || panels === undefined) {
-    return <div className="animate-pulse">Loading...</div>;
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-8 w-48 rounded-lg bg-muted" />
+        <div className="grid gap-6 md:grid-cols-2">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-64 rounded-xl bg-muted" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   // Initial setup for new servers
@@ -64,7 +85,7 @@ export default function SettingsPage() {
     try {
       await upsertSettings({
         guildId,
-        ownerId: "dashboard", // Will be the first user to set up
+        ownerId: "dashboard",
         maxOpenTicketsPerUser: form.maxOpenTicketsPerUser,
         ticketCooldownSeconds: form.ticketCooldownSeconds,
         ticketCategoryId: form.ticketCategoryId,
@@ -79,20 +100,26 @@ export default function SettingsPage() {
 
   if (!settings) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Initial Setup</h2>
-          <p className="text-muted-foreground">Configure your ticket bot for this server</p>
+      <div className="space-y-8 animate-fade-in">
+        {/* Header */}
+        <div className="text-center max-w-lg mx-auto">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mx-auto">
+            <Settings className="h-8 w-8 text-primary" />
+          </div>
+          <h1 className="mt-6 text-2xl font-semibold tracking-tight">Initial Setup</h1>
+          <p className="mt-2 text-muted-foreground">
+            Configure the ticket bot for this server. You can change these settings later.
+          </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                General Settings
+                <Hash className="h-5 w-5 text-muted-foreground" />
+                Channels
               </CardTitle>
-              <CardDescription>Required configuration</CardDescription>
+              <CardDescription>Where tickets will be managed</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -106,7 +133,7 @@ export default function SettingsPage() {
                   placeholder="Select category for tickets..."
                 />
                 <p className="text-xs text-muted-foreground">
-                  Where ticket channels will be created
+                  New ticket channels will be created here
                 </p>
               </div>
               <div className="space-y-2">
@@ -119,17 +146,9 @@ export default function SettingsPage() {
                   onValueChange={(value) => setForm({ ...form, logChannelId: value })}
                   placeholder="Select log channel..."
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="maxTickets">Max tickets per user</Label>
-                <Input
-                  id="maxTickets"
-                  type="number"
-                  min={1}
-                  max={10}
-                  value={form.maxOpenTicketsPerUser}
-                  onChange={(e) => setForm({ ...form, maxOpenTicketsPerUser: parseInt(e.target.value) || 1 })}
-                />
+                <p className="text-xs text-muted-foreground">
+                  Ticket logs and transcripts will be sent here
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -137,7 +156,7 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
+                <Shield className="h-5 w-5 text-muted-foreground" />
                 Staff Roles
               </CardTitle>
               <CardDescription>Who can manage tickets</CardDescription>
@@ -153,7 +172,7 @@ export default function SettingsPage() {
                   placeholder="Select staff roles..."
                 />
                 <p className="text-xs text-muted-foreground">
-                  Roles that can view and respond to tickets
+                  Can view and respond to tickets
                 </p>
               </div>
               <Separator />
@@ -167,19 +186,59 @@ export default function SettingsPage() {
                   placeholder="Select admin roles..."
                 />
                 <p className="text-xs text-muted-foreground">
-                  Roles with full management permissions
+                  Full management permissions
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-muted-foreground" />
+                Limits
+              </CardTitle>
+              <CardDescription>Control ticket creation</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="maxTickets">Max tickets per user</Label>
+                <Input
+                  id="maxTickets"
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={form.maxOpenTicketsPerUser}
+                  onChange={(e) => setForm({ ...form, maxOpenTicketsPerUser: parseInt(e.target.value) || 1 })}
+                />
+                <p className="text-xs text-muted-foreground">1-10 open tickets at once</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cooldown">Cooldown (seconds)</Label>
+                <Input
+                  id="cooldown"
+                  type="number"
+                  min={0}
+                  value={form.ticketCooldownSeconds}
+                  onChange={(e) => setForm({ ...form, ticketCooldownSeconds: parseInt(e.target.value) || 0 })}
+                />
+                <p className="text-xs text-muted-foreground">0 = no cooldown</p>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-center">
           <Button
+            size="lg"
             onClick={handleInitialSetup}
             disabled={saving || !form.ticketCategoryId || form.staffRoleIds.length === 0}
           >
-            <Save className="mr-2 h-4 w-4" />
+            {saving ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
             {saving ? "Setting up..." : "Complete Setup"}
           </Button>
         </div>
@@ -229,58 +288,81 @@ export default function SettingsPage() {
     JSON.stringify(form.adminRoleIds.sort()) !== JSON.stringify(settings.adminRoleIds.sort());
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
-          <p className="text-muted-foreground">Configure your ticket bot settings</p>
+          <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+          <p className="mt-1 text-muted-foreground">
+            Configure your ticket bot settings
+          </p>
         </div>
         {hasChanges && (
           <Button onClick={handleSave} disabled={saving}>
-            <Save className="mr-2 h-4 w-4" />
+            {saving ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
             {saving ? "Saving..." : "Save Changes"}
           </Button>
         )}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      {/* Quick links */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <QuickLinkCard
+          href={`/dashboard/${guildId}/settings/options`}
+          icon={<ListChecks className="h-6 w-6" />}
+          title="Ticket Options"
+          description="Configure ticket types and categories"
+          badge={`${options.length} option(s)`}
+        />
+        <QuickLinkCard
+          href={`/dashboard/${guildId}/settings/panels`}
+          icon={<LayoutPanelLeft className="h-6 w-6" />}
+          title="Ticket Panels"
+          description="Manage ticket creation panels"
+          badge={`${panels.length} panel(s)`}
+        />
+      </div>
+
+      {/* Settings grid */}
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* General Settings */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
+              <Settings className="h-5 w-5 text-muted-foreground" />
               General Settings
             </CardTitle>
             <CardDescription>Core bot configuration</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="maxTickets">Max tickets per user</Label>
-              <Input
-                id="maxTickets"
-                type="number"
-                min={1}
-                max={10}
-                value={form.maxOpenTicketsPerUser}
-                onChange={(e) => setForm({ ...form, maxOpenTicketsPerUser: parseInt(e.target.value) || 1 })}
-              />
-              <p className="text-xs text-muted-foreground">
-                Maximum number of open tickets a user can have at once (1-10)
-              </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="maxTickets">Max tickets per user</Label>
+                <Input
+                  id="maxTickets"
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={form.maxOpenTicketsPerUser}
+                  onChange={(e) => setForm({ ...form, maxOpenTicketsPerUser: parseInt(e.target.value) || 1 })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cooldown">Cooldown (seconds)</Label>
+                <Input
+                  id="cooldown"
+                  type="number"
+                  min={0}
+                  value={form.ticketCooldownSeconds}
+                  onChange={(e) => setForm({ ...form, ticketCooldownSeconds: parseInt(e.target.value) || 0 })}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="cooldown">Cooldown (seconds)</Label>
-              <Input
-                id="cooldown"
-                type="number"
-                min={0}
-                value={form.ticketCooldownSeconds}
-                onChange={(e) => setForm({ ...form, ticketCooldownSeconds: parseInt(e.target.value) || 0 })}
-              />
-              <p className="text-xs text-muted-foreground">
-                Time between creating tickets (0 = no cooldown)
-              </p>
-            </div>
+            <Separator />
             <div className="space-y-2">
               <Label>Ticket category</Label>
               <ChannelSelect
@@ -291,9 +373,6 @@ export default function SettingsPage() {
                 onValueChange={(value) => setForm({ ...form, ticketCategoryId: value })}
                 placeholder="Select ticket category..."
               />
-              <p className="text-xs text-muted-foreground">
-                Where ticket channels are created
-              </p>
             </div>
             <div className="space-y-2">
               <Label>Log channel</Label>
@@ -305,9 +384,6 @@ export default function SettingsPage() {
                 onValueChange={(value) => setForm({ ...form, logChannelId: value })}
                 placeholder="Select log channel..."
               />
-              <p className="text-xs text-muted-foreground">
-                Where ticket logs are sent
-              </p>
             </div>
           </CardContent>
         </Card>
@@ -316,10 +392,10 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Roles
+              <Shield className="h-5 w-5 text-muted-foreground" />
+              Staff Roles
             </CardTitle>
-            <CardDescription>Staff and admin role configuration</CardDescription>
+            <CardDescription>Who can manage tickets</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -332,7 +408,7 @@ export default function SettingsPage() {
                 placeholder="Select staff roles..."
               />
               <p className="text-xs text-muted-foreground">
-                Roles that can view and respond to tickets
+                Can view and respond to tickets
               </p>
             </div>
             <Separator />
@@ -346,112 +422,25 @@ export default function SettingsPage() {
                 placeholder="Select admin roles..."
               />
               <p className="text-xs text-muted-foreground">
-                Roles with full ticket management permissions
+                Full ticket management permissions
               </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Ticket Options */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <ListChecks className="h-5 w-5" />
-                Ticket Options
-              </CardTitle>
-              <CardDescription>{options.length} option(s) configured</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`/dashboard/${guildId}/settings/options`}>
-                Manage
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {options.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No ticket options created yet</p>
-            ) : (
-              <div className="space-y-2">
-                {options.slice(0, 5).map((option) => (
-                  <div
-                    key={option._id}
-                    className="flex items-center justify-between rounded-lg border p-3"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span>{option.emoji ?? "📋"}</span>
-                      <span className="font-medium">{option.name}</span>
-                    </div>
-                    <Badge variant={option.enabled ? "default" : "secondary"}>
-                      {option.enabled ? "Enabled" : "Disabled"}
-                    </Badge>
-                  </div>
-                ))}
-                {options.length > 5 && (
-                  <p className="text-sm text-muted-foreground">
-                    +{options.length - 5} more options
-                  </p>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Panels */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <LayoutPanelLeft className="h-5 w-5" />
-                Ticket Panels
-              </CardTitle>
-              <CardDescription>{panels.length} panel(s) active</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`/dashboard/${guildId}/settings/panels`}>
-                Manage
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {panels.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No panels created yet</p>
-            ) : (
-              <div className="space-y-2">
-                {panels.map((panel) => (
-                  <div
-                    key={panel._id}
-                    className="flex items-center justify-between rounded-lg border p-3"
-                  >
-                    <div>
-                      <span className="font-medium">{panel.name}</span>
-                      <p className="text-xs text-muted-foreground">
-                        {panel.style} • {panel.optionIds.length} option(s)
-                      </p>
-                    </div>
-                    <Badge variant="outline">{panel.style}</Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
         {/* Blacklist */}
-        <Card className="md:col-span-2">
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Ban className="h-5 w-5" />
+              <Ban className="h-5 w-5 text-muted-foreground" />
               Blacklist
             </CardTitle>
             <CardDescription>
-              Users who cannot create tickets ({settings.blacklistedUserIds.length} user(s))
+              Users who cannot create tickets ({settings.blacklistedUserIds.length})
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <div className="flex-1">
                 <MemberSelect
                   guildId={guildId}
@@ -465,7 +454,11 @@ export default function SettingsPage() {
                 onClick={handleAddToBlacklist}
                 disabled={!blacklistUserId || addingToBlacklist}
               >
-                <Plus className="mr-2 h-4 w-4" />
+                {addingToBlacklist ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="mr-2 h-4 w-4" />
+                )}
                 Add
               </Button>
             </div>
@@ -486,7 +479,42 @@ export default function SettingsPage() {
   );
 }
 
-// Separate component to display blacklisted members with remove buttons
+function QuickLinkCard({
+  href,
+  icon,
+  title,
+  description,
+  badge,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  badge: string;
+}) {
+  return (
+    <Link href={href}>
+      <Card variant="interactive" className="p-5">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            {icon}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold">{title}</h3>
+              <Badge variant="secondary" size="sm">
+                {badge}
+              </Badge>
+            </div>
+            <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+        </div>
+      </Card>
+    </Link>
+  );
+}
+
 function BlacklistedMembers({
   guildId,
   userIds,
@@ -499,7 +527,7 @@ function BlacklistedMembers({
   const members = useQuery(api.discord.listMembers, { guildId });
 
   if (members === undefined) {
-    return <span className="text-muted-foreground">Loading...</span>;
+    return <div className="text-sm text-muted-foreground">Loading...</div>;
   }
 
   return (
@@ -509,18 +537,22 @@ function BlacklistedMembers({
         const displayName = member?.displayName || member?.username || "Unknown user";
 
         return (
-          <Badge key={userId} variant="secondary" className="gap-1 pr-1">
+          <Badge key={userId} variant="secondary" className="gap-2 pr-1 py-1">
             {member?.avatarHash ? (
               <img
                 src={`https://cdn.discordapp.com/avatars/${userId}/${member.avatarHash}.png?size=32`}
                 alt=""
-                className="h-4 w-4 rounded-full"
+                className="h-5 w-5 rounded-full"
               />
-            ) : null}
-            {displayName}
+            ) : (
+              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted">
+                <Users className="h-3 w-3" />
+              </div>
+            )}
+            <span>{displayName}</span>
             <button
               type="button"
-              className="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20"
+              className="flex h-5 w-5 items-center justify-center rounded-full hover:bg-destructive/20 hover:text-destructive transition-colors"
               onClick={() => onRemove(userId)}
             >
               <X className="h-3 w-3" />

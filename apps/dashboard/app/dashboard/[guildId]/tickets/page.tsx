@@ -5,7 +5,7 @@ import { useQuery } from "convex/react";
 import { api } from "@discord-ticket/convex/convex/_generated/api";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,7 +17,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Ticket, Search, ExternalLink } from "lucide-react";
+import {
+  Ticket,
+  Search,
+  ExternalLink,
+  Filter,
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+} from "lucide-react";
 import type { Doc } from "@discord-ticket/convex/convex/_generated/dataModel";
 
 export default function TicketsPage() {
@@ -32,7 +40,17 @@ export default function TicketsPage() {
   const options = useQuery(api.ticketOptions.listByGuild, { guildId });
 
   if (tickets === undefined || options === undefined) {
-    return <div className="animate-pulse">Loading...</div>;
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-8 w-48 rounded-lg bg-muted" />
+        <div className="h-12 rounded-xl bg-muted" />
+        <div className="space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-24 rounded-xl bg-muted" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   // Filter tickets
@@ -55,89 +73,106 @@ export default function TicketsPage() {
     );
   }
 
-  // Group by status for tabs
+  // Counts for tabs
   const openTickets = tickets.filter((t) => t.status === "open");
   const closedTickets = tickets.filter((t) => t.status === "closed");
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Tickets</h2>
-          <p className="text-muted-foreground">
-            View and manage all tickets for this server
-          </p>
-        </div>
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Tickets</h1>
+        <p className="mt-1 text-muted-foreground">
+          View and manage all support tickets
+        </p>
       </div>
 
       {/* Filters */}
       <Card>
-        <CardContent className="flex flex-wrap items-center gap-4 pt-6">
-          <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
+        <CardContent className="flex flex-wrap items-center gap-4 p-4">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search by user or ticket #..."
+              placeholder="Search by user or ticket number..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-64"
+              className="pl-9"
             />
           </div>
 
-          <Select
-            value={statusFilter}
-            onValueChange={(v) => setStatusFilter(v as any)}
-          >
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="closed">Closed</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select
+              value={statusFilter}
+              onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </SelectContent>
+            </Select>
 
-          <Select
-            value={priorityFilter}
-            onValueChange={setPriorityFilter}
-          >
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Priority</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="normal">Normal</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="urgent">Urgent</SelectItem>
-            </SelectContent>
-          </Select>
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priority</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="urgent">Urgent</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <div className="ml-auto text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground">
             {filteredTickets.length} ticket(s)
           </div>
         </CardContent>
       </Card>
 
-      {/* Ticket list */}
+      {/* Tickets with tabs */}
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="all">All ({tickets.length})</TabsTrigger>
-          <TabsTrigger value="open">Open ({openTickets.length})</TabsTrigger>
-          <TabsTrigger value="closed">Closed ({closedTickets.length})</TabsTrigger>
+          <TabsTrigger value="all" className="gap-2">
+            <Ticket className="h-4 w-4" />
+            All
+            <Badge variant="secondary" size="sm">
+              {tickets.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="open" className="gap-2">
+            <Clock className="h-4 w-4" />
+            Open
+            <Badge variant="success" size="sm">
+              {openTickets.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="closed" className="gap-2">
+            <CheckCircle className="h-4 w-4" />
+            Closed
+            <Badge variant="secondary" size="sm">
+              {closedTickets.length}
+            </Badge>
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all" className="space-y-4">
+        <TabsContent value="all">
           <TicketList tickets={filteredTickets} guildId={guildId} options={options} />
         </TabsContent>
-        <TabsContent value="open" className="space-y-4">
+        <TabsContent value="open">
           <TicketList
             tickets={filteredTickets.filter((t) => t.status === "open")}
             guildId={guildId}
             options={options}
           />
         </TabsContent>
-        <TabsContent value="closed" className="space-y-4">
+        <TabsContent value="closed">
           <TicketList
             tickets={filteredTickets.filter((t) => t.status === "closed")}
             guildId={guildId}
@@ -161,55 +196,95 @@ function TicketList({
   if (tickets.length === 0) {
     return (
       <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <Ticket className="h-12 w-12 text-muted-foreground" />
-          <p className="mt-4 text-muted-foreground">No tickets found</p>
+        <CardContent className="flex flex-col items-center justify-center py-16">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+            <Ticket className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <p className="mt-4 font-medium">No tickets found</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Try adjusting your filters
+          </p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-2">
-      {tickets.map((ticket) => {
+    <div className="space-y-3">
+      {tickets.map((ticket, index) => {
         const option = options.find((o) => o._id === ticket.optionId);
 
         return (
-          <Card key={ticket._id}>
-            <CardContent className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-lg">
+          <Link
+            key={ticket._id}
+            href={`/dashboard/${guildId}/tickets/${ticket._id}`}
+            className="block animate-slide-up"
+            style={{ animationDelay: `${index * 30}ms` }}
+          >
+            <Card
+              variant="interactive"
+              className="p-0 overflow-hidden"
+            >
+              <div className="flex items-center gap-4 p-4">
+                {/* Status indicator */}
+                <div
+                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-lg ${
+                    ticket.status === "open"
+                      ? "bg-success/10"
+                      : "bg-muted"
+                  }`}
+                >
                   {option?.emoji ?? "📋"}
                 </div>
-                <div>
+
+                {/* Ticket info */}
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">
+                    <span className="font-semibold">
                       #{ticket.ticketNumber.toString().padStart(4, "0")}
                     </span>
                     <span className="text-muted-foreground">-</span>
-                    <span className="text-sm text-muted-foreground">
-                      {option?.name ?? "Unknown"}
+                    <span className="truncate text-muted-foreground">
+                      {option?.name ?? "Unknown Type"}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Created by {ticket.creatorUsername} •{" "}
-                    {formatDate(ticket.createdAt)}
-                  </p>
+                  <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                    <span className="truncate">{ticket.creatorUsername}</span>
+                    <span>•</span>
+                    <span>{formatDate(ticket.createdAt)}</span>
+                  </div>
+                </div>
+
+                {/* Badges and action */}
+                <div className="flex items-center gap-3">
+                  {ticket.priority === "urgent" || ticket.priority === "high" ? (
+                    <div className="flex items-center gap-1.5 text-sm text-warning">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span className="hidden sm:inline">Priority</span>
+                    </div>
+                  ) : null}
+                  <PriorityBadge priority={ticket.priority} />
+                  <StatusBadge status={ticket.status} />
+                  <Button variant="ghost" size="icon-sm" className="hidden sm:flex">
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                <PriorityBadge priority={ticket.priority} />
-                <StatusBadge status={ticket.status} />
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/dashboard/${guildId}/tickets/${ticket._id}`}>
-                    View
-                    <ExternalLink className="ml-2 h-3 w-3" />
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              {/* Bottom border color based on status */}
+              <div
+                className={`h-1 w-full ${
+                  ticket.status === "open"
+                    ? ticket.priority === "urgent"
+                      ? "bg-destructive"
+                      : ticket.priority === "high"
+                      ? "bg-warning"
+                      : "bg-success"
+                    : "bg-muted"
+                }`}
+              />
+            </Card>
+          </Link>
         );
       })}
     </div>
@@ -218,7 +293,7 @@ function TicketList({
 
 function StatusBadge({ status }: { status: "open" | "closed" }) {
   return (
-    <Badge variant={status === "open" ? "default" : "secondary"}>
+    <Badge variant={status === "open" ? "success" : "secondary"}>
       {status === "open" ? "Open" : "Closed"}
     </Badge>
   );
@@ -226,7 +301,7 @@ function StatusBadge({ status }: { status: "open" | "closed" }) {
 
 function PriorityBadge({ priority }: { priority: string }) {
   const variants: Record<string, "default" | "secondary" | "destructive" | "warning" | "success"> = {
-    low: "success",
+    low: "secondary",
     normal: "default",
     high: "warning",
     urgent: "destructive",
