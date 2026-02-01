@@ -242,13 +242,6 @@ async function sendInitialMessage(
         custom_id: `ticket:close:${ticketId}`,
         emoji: { name: "🔒" },
       },
-      {
-        type: ComponentType.Button,
-        style: ButtonStyle.Secondary,
-        label: "Claim",
-        custom_id: `ticket:claim:${ticketId}`,
-        emoji: { name: "✋" },
-      },
     ],
   };
 

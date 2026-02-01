@@ -168,10 +168,5 @@ async function handleTicketButton(
     });
 
     // TODO: Generate transcript and send to log channel
-  } else if (action === "claim") {
-    // For now, just acknowledge the claim
-    await api_.interactions.reply(interaction.id, interaction.token, {
-      content: `✋ <@${user.id}> claimed this ticket.`,
-    });
   }
 }
