@@ -231,4 +231,99 @@ export default defineSchema({
     .index("by_ticket_message", ["ticketId", "messageId"])
     .index("by_message", ["messageId"])
     .index("by_ticket_action_time", ["ticketId", "actionAt"]),
+
+  // Synced Discord servers
+  discordServers: defineTable({
+    guildId: discordSnowflake,
+    name: v.string(),
+    iconHash: v.optional(v.string()),
+    ownerId: v.optional(discordSnowflake),
+    memberCount: v.optional(v.number()),
+    lastUpdated: v.number(),
+  }).index("by_guild", ["guildId"]),
+
+  // Synced Discord channels (union type for text/voice/category)
+  discordChannels: defineTable(
+    v.union(
+      v.object({
+        channelType: v.literal("text"),
+        guildId: discordSnowflake,
+        channelId: discordSnowflake,
+        name: v.string(),
+        topic: v.optional(v.string()),
+        nsfw: v.boolean(),
+        rateLimitPerUser: v.number(),
+        parentId: v.optional(discordSnowflake),
+        position: v.number(),
+        lastUpdated: v.number(),
+      }),
+      v.object({
+        channelType: v.literal("voice"),
+        guildId: discordSnowflake,
+        channelId: discordSnowflake,
+        name: v.string(),
+        bitrate: v.number(),
+        userLimit: v.number(),
+        rtcRegion: v.optional(v.string()),
+        parentId: v.optional(discordSnowflake),
+        position: v.number(),
+        lastUpdated: v.number(),
+      }),
+      v.object({
+        channelType: v.literal("category"),
+        guildId: discordSnowflake,
+        channelId: discordSnowflake,
+        name: v.string(),
+        parentId: v.optional(discordSnowflake),
+        position: v.number(),
+        lastUpdated: v.number(),
+      }),
+    ),
+  )
+    .index("by_guild", ["guildId"])
+    .index("by_guild_channel", ["guildId", "channelId"]),
+
+  // Synced Discord roles
+  discordRoles: defineTable({
+    guildId: discordSnowflake,
+    roleId: discordSnowflake,
+    name: v.string(),
+    color: v.number(),
+    hoist: v.boolean(),
+    position: v.number(),
+    permissions: v.string(),
+    managed: v.boolean(),
+    mentionable: v.boolean(),
+    lastUpdated: v.number(),
+  })
+    .index("by_guild", ["guildId"])
+    .index("by_guild_role", ["guildId", "roleId"]),
+
+  // Synced Discord members
+  discordMembers: defineTable({
+    guildId: discordSnowflake,
+    userId: discordSnowflake,
+    username: v.string(),
+    displayName: v.optional(v.string()),
+    avatarHash: v.optional(v.string()),
+    roles: v.array(discordSnowflake),
+    joinedAt: v.optional(v.number()),
+    lastUpdated: v.number(),
+  })
+    .index("by_guild", ["guildId"])
+    .index("by_guild_user", ["guildId", "userId"]),
+
+  // Synced Discord emojis
+  discordEmojis: defineTable({
+    guildId: discordSnowflake,
+    emojiId: discordSnowflake,
+    name: v.string(),
+    animated: v.boolean(),
+    imageUrl: v.string(),
+    source: v.union(v.literal("guild"), v.literal("application")),
+    lastUpdated: v.number(),
+  })
+    .index("by_guild", ["guildId"])
+    .index("by_guild_emoji", ["guildId", "emojiId"])
+    .index("by_guild_source", ["guildId", "source"]),
 });

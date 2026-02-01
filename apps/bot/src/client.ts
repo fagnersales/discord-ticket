@@ -11,7 +11,9 @@ export const gateway = new WebSocketManager({
   intents:
     GatewayIntentBits.Guilds |
     GatewayIntentBits.GuildMessages |
-    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.MessageContent |
+    GatewayIntentBits.GuildMembers |
+    GatewayIntentBits.GuildEmojisAndStickers,
 });
 gateway.setToken(token);
 
