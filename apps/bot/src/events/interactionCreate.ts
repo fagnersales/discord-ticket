@@ -7,6 +7,7 @@ import {
   type APIInteraction,
   type API,
   type APIChatInputApplicationCommandInteraction,
+  type APIApplicationCommandAutocompleteInteraction,
   type APIApplicationCommandInteractionDataOption,
   type APIApplicationCommandInteractionDataSubcommandOption,
   type APIEmbed,
@@ -46,6 +47,12 @@ export async function handleInteractionCreate(interaction: APIInteraction, api_:
     return;
   }
 
+  // Handle autocomplete
+  if (interaction.type === InteractionType.ApplicationCommandAutocomplete) {
+    await handleAutocomplete(interaction, api_);
+    return;
+  }
+
   // Handle application commands
   if (interaction.type !== InteractionType.ApplicationCommand) return;
   if (!("name" in interaction.data)) return;
@@ -62,10 +69,6 @@ export async function handleInteractionCreate(interaction: APIInteraction, api_:
 
     case "ticket":
       await handleTicketCommand(commandInteraction, api_);
-      break;
-
-    case "settings":
-      await handleSettingsCommand(commandInteraction, api_);
       break;
 
     case "panel":
@@ -217,237 +220,6 @@ async function handleTicketCommand(
   }
 }
 
-async function handleSettingsCommand(
-  interaction: APIChatInputApplicationCommandInteraction,
-  api_: API
-) {
-  const subcommand = getSubcommand(interaction.data.options);
-  if (!subcommand || !interaction.guild_id) return;
-
-  const user = interaction.user ?? interaction.member?.user;
-  if (!user) return;
-
-  switch (subcommand.name) {
-    case "setup": {
-      const categoryId = subcommand.options.get("category") as string | undefined;
-      const logChannelId = subcommand.options.get("log_channel") as string | undefined;
-      const maxTickets = subcommand.options.get("max_tickets") as number | undefined;
-
-      await convex.mutation(api.serverSettings.upsert, {
-        guildId: interaction.guild_id,
-        ownerId: user.id,
-        ticketCategoryId: categoryId,
-        logChannelId: logChannelId,
-        maxOpenTicketsPerUser: maxTickets,
-      });
-
-      await api_.interactions.reply(interaction.id, interaction.token, {
-        content: "✅ Server settings updated!",
-        flags: MessageFlags.Ephemeral,
-      });
-      break;
-    }
-
-    case "staff": {
-      const action = subcommand.options.get("action") as "add" | "remove";
-      const roleId = subcommand.options.get("role") as string;
-
-      const settings = await convex.query(api.serverSettings.getByGuildId, {
-        guildId: interaction.guild_id,
-      });
-
-      if (!settings) {
-        await api_.interactions.reply(interaction.id, interaction.token, {
-          content: "❌ Please run `/settings setup` first.",
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-
-      let newStaffRoles = [...settings.staffRoleIds];
-      if (action === "add" && !newStaffRoles.includes(roleId)) {
-        newStaffRoles.push(roleId);
-      } else if (action === "remove") {
-        newStaffRoles = newStaffRoles.filter((id) => id !== roleId);
-      }
-
-      await convex.mutation(api.serverSettings.upsert, {
-        guildId: interaction.guild_id,
-        ownerId: settings.ownerId,
-        staffRoleIds: newStaffRoles,
-      });
-
-      await api_.interactions.reply(interaction.id, interaction.token, {
-        content: `✅ ${action === "add" ? "Added" : "Removed"} <@&${roleId}> ${action === "add" ? "to" : "from"} staff roles.`,
-        flags: MessageFlags.Ephemeral,
-      });
-      break;
-    }
-
-    case "admin": {
-      const action = subcommand.options.get("action") as "add" | "remove";
-      const roleId = subcommand.options.get("role") as string;
-
-      const settings = await convex.query(api.serverSettings.getByGuildId, {
-        guildId: interaction.guild_id,
-      });
-
-      if (!settings) {
-        await api_.interactions.reply(interaction.id, interaction.token, {
-          content: "❌ Please run `/settings setup` first.",
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-
-      let newAdminRoles = [...settings.adminRoleIds];
-      if (action === "add" && !newAdminRoles.includes(roleId)) {
-        newAdminRoles.push(roleId);
-      } else if (action === "remove") {
-        newAdminRoles = newAdminRoles.filter((id) => id !== roleId);
-      }
-
-      await convex.mutation(api.serverSettings.upsert, {
-        guildId: interaction.guild_id,
-        ownerId: settings.ownerId,
-        adminRoleIds: newAdminRoles,
-      });
-
-      await api_.interactions.reply(interaction.id, interaction.token, {
-        content: `✅ ${action === "add" ? "Added" : "Removed"} <@&${roleId}> ${action === "add" ? "to" : "from"} admin roles.`,
-        flags: MessageFlags.Ephemeral,
-      });
-      break;
-    }
-
-    case "blacklist": {
-      const action = subcommand.options.get("action") as "add" | "remove";
-      const userId = subcommand.options.get("user") as string;
-
-      if (action === "add") {
-        await convex.mutation(api.serverSettings.addToBlacklist, {
-          guildId: interaction.guild_id,
-          userId,
-        });
-      } else {
-        await convex.mutation(api.serverSettings.removeFromBlacklist, {
-          guildId: interaction.guild_id,
-          userId,
-        });
-      }
-
-      await api_.interactions.reply(interaction.id, interaction.token, {
-        content: `✅ ${action === "add" ? "Added" : "Removed"} <@${userId}> ${action === "add" ? "to" : "from"} the blacklist.`,
-        flags: MessageFlags.Ephemeral,
-      });
-      break;
-    }
-
-    case "option": {
-      const name = subcommand.options.get("name") as string;
-      const description = subcommand.options.get("description") as string | undefined;
-      const emoji = subcommand.options.get("emoji") as string | undefined;
-      const roleId = subcommand.options.get("role") as string | undefined;
-
-      // Ensure server settings exist
-      const settings = await convex.query(api.serverSettings.getByGuildId, {
-        guildId: interaction.guild_id,
-      });
-
-      if (!settings) {
-        await api_.interactions.reply(interaction.id, interaction.token, {
-          content: "❌ Please run `/settings setup` first.",
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-
-      await convex.mutation(api.ticketOptions.create, {
-        guildId: interaction.guild_id,
-        name,
-        description,
-        emoji,
-        channelNameTemplate: `ticket-{ticketNumber}`,
-        responsibleRoleIds: roleId ? [roleId] : settings.staffRoleIds,
-        useModal: false,
-      });
-
-      await api_.interactions.reply(interaction.id, interaction.token, {
-        content: `✅ Created ticket option **${name}**.`,
-        flags: MessageFlags.Ephemeral,
-      });
-      break;
-    }
-
-    case "view": {
-      const settings = await convex.query(api.serverSettings.getByGuildId, {
-        guildId: interaction.guild_id,
-      });
-
-      if (!settings) {
-        await api_.interactions.reply(interaction.id, interaction.token, {
-          content: "❌ No settings found. Run `/settings setup` to configure the bot.",
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-
-      const options = await convex.query(api.ticketOptions.listByGuild, {
-        guildId: interaction.guild_id,
-      });
-
-      const embed: APIEmbed = {
-        title: "Ticket Bot Settings",
-        color: 0x5865f2,
-        fields: [
-          {
-            name: "Ticket Category",
-            value: settings.ticketCategoryId ? `<#${settings.ticketCategoryId}>` : "*Not set*",
-            inline: true,
-          },
-          {
-            name: "Log Channel",
-            value: settings.logChannelId ? `<#${settings.logChannelId}>` : "*Not set*",
-            inline: true,
-          },
-          {
-            name: "Max Tickets/User",
-            value: settings.maxOpenTicketsPerUser.toString(),
-            inline: true,
-          },
-          {
-            name: "Staff Roles",
-            value: settings.staffRoleIds.length > 0
-              ? settings.staffRoleIds.map((id) => `<@&${id}>`).join(", ")
-              : "*None*",
-            inline: false,
-          },
-          {
-            name: "Admin Roles",
-            value: settings.adminRoleIds.length > 0
-              ? settings.adminRoleIds.map((id) => `<@&${id}>`).join(", ")
-              : "*None*",
-            inline: false,
-          },
-          {
-            name: "Ticket Options",
-            value: options.length > 0
-              ? options.map((o) => `${o.emoji ?? "📋"} ${o.name}${o.enabled ? "" : " *(disabled)*"}`).join("\n")
-              : "*None created*",
-            inline: false,
-          },
-        ],
-      };
-
-      await api_.interactions.reply(interaction.id, interaction.token, {
-        embeds: [embed],
-        flags: MessageFlags.Ephemeral,
-      });
-      break;
-    }
-  }
-}
-
 async function handlePanelCommand(
   interaction: APIChatInputApplicationCommandInteraction,
   api_: API
@@ -456,37 +228,54 @@ async function handlePanelCommand(
   if (!subcommand || !interaction.guild_id) return;
 
   switch (subcommand.name) {
-    case "create": {
-      const style = subcommand.options.get("style") as "buttons" | "dropdown";
-      const title = subcommand.options.get("title") as string | undefined;
-      const description = subcommand.options.get("description") as string | undefined;
-      const colorHex = subcommand.options.get("color") as string | undefined;
+    case "post": {
+      const panelName = subcommand.options.get("panel_name") as string;
 
-      // Get ticket options
-      const options = await convex.query(api.ticketOptions.listEnabledByGuild, {
+      // Find panel by name (could be ID or name)
+      const panels = await convex.query(api.ticketPanels.listByGuild, {
         guildId: interaction.guild_id,
       });
 
+      // Try to find by ID first (for autocomplete), then by name
+      let panel = panels.find((p) => p._id === panelName);
+      if (!panel) {
+        panel = panels.find((p) => p.name.toLowerCase() === panelName.toLowerCase());
+      }
+
+      if (!panel) {
+        await api_.interactions.reply(interaction.id, interaction.token, {
+          content: "❌ Panel not found. Create panels in the dashboard first.",
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+
+      // Get options for this panel
+      const allOptions = await convex.query(api.ticketOptions.listByGuild, {
+        guildId: interaction.guild_id,
+      });
+      const options = allOptions
+        .filter((o) => panel!.optionIds.includes(o._id as Id<"ticketOptions">) && o.enabled)
+        .sort((a, b) => a.order - b.order);
+
       if (options.length === 0) {
         await api_.interactions.reply(interaction.id, interaction.token, {
-          content: "❌ No ticket options configured. Use `/settings option` to create one first.",
+          content: "❌ This panel has no enabled ticket options.",
           flags: MessageFlags.Ephemeral,
         });
         return;
       }
 
       // Build embed
-      const embed: APIEmbed = {
-        title: title ?? "🎫 Support Tickets",
-        description: description ?? "Click a button below to create a ticket.",
-        color: colorHex ? parseInt(colorHex, 16) : 0x5865f2,
-      };
+      const embed: APIEmbed = {};
+      if (panel.embed.title) embed.title = panel.embed.title;
+      if (panel.embed.description) embed.description = panel.embed.description;
+      if (panel.embed.color) embed.color = panel.embed.color;
 
       // Build components based on style
       let components: APIActionRowComponent<APIButtonComponent | APIStringSelectComponent>[];
 
-      if (style === "buttons") {
-        // Create button rows (max 5 buttons per row, max 5 rows)
+      if (panel.style === "buttons") {
         const rows: APIActionRowComponent<APIButtonComponent>[] = [];
         let currentRow: APIButtonComponent[] = [];
 
@@ -512,11 +301,10 @@ async function handlePanelCommand(
 
         components = rows;
       } else {
-        // Create dropdown
         const selectMenu: APIStringSelectComponent = {
           type: ComponentType.StringSelect,
           custom_id: `ticket_create_select`,
-          placeholder: "Select a ticket type...",
+          placeholder: panel.dropdownPlaceholder ?? "Select a ticket type...",
           options: options.slice(0, 25).map((option) => ({
             label: option.name,
             value: option._id,
@@ -536,29 +324,16 @@ async function handlePanelCommand(
         },
       }) as { id: string };
 
-      // Save panel configuration to database
-      const panelId = await convex.mutation(api.ticketPanels.create, {
-        guildId: interaction.guild_id,
-        name: title ?? `Panel ${new Date().toISOString().split('T')[0]}`,
-        embed: {
-          title: embed.title,
-          description: embed.description,
-          color: embed.color,
-        },
-        style,
-        optionIds: options.map((o) => o._id),
-      });
-
       // Save the panel message reference
       await convex.mutation(api.ticketPanels.addMessage, {
-        panelId,
+        panelId: panel._id,
         guildId: interaction.guild_id,
         channelId: interaction.channel.id,
         messageId: message.id,
       });
 
       await api_.interactions.reply(interaction.id, interaction.token, {
-        content: "✅ Panel created!",
+        content: `✅ Panel "${panel.name}" posted!`,
         flags: MessageFlags.Ephemeral,
       });
       break;
@@ -690,4 +465,53 @@ async function handlePanelCommand(
       break;
     }
   }
+}
+
+async function handleAutocomplete(
+  interaction: APIApplicationCommandAutocompleteInteraction,
+  api_: API
+) {
+  if (!interaction.guild_id) return;
+
+  const commandName = interaction.data.name;
+  const options = interaction.data.options;
+
+  // Handle /panel post autocomplete
+  if (commandName === "panel" && options) {
+    const subcommand = options.find((o) => o.name === "post" && o.type === 1);
+    if (subcommand && "options" in subcommand && subcommand.options) {
+      const focusedOption = subcommand.options.find((o) => "focused" in o && o.focused);
+      if (focusedOption && focusedOption.name === "panel_name") {
+        const query = ("value" in focusedOption ? String(focusedOption.value) : "").toLowerCase();
+
+        // Get all panels for this guild
+        const panels = await convex.query(api.ticketPanels.listByGuild, {
+          guildId: interaction.guild_id,
+        });
+
+        // Filter by query and return up to 25 results
+        const choices = panels
+          .filter((p) => p.name.toLowerCase().includes(query))
+          .slice(0, 25)
+          .map((p) => ({
+            name: p.name,
+            value: p._id,
+          }));
+
+        await api_.interactions.createAutocompleteResponse(
+          interaction.id,
+          interaction.token,
+          { choices }
+        );
+        return;
+      }
+    }
+  }
+
+  // Default empty response
+  await api_.interactions.createAutocompleteResponse(
+    interaction.id,
+    interaction.token,
+    { choices: [] }
+  );
 }

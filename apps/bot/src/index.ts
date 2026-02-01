@@ -5,7 +5,6 @@ import { client, gateway, rest } from "./client";
 import { pingCommand } from "./commands/ping";
 import { ticketCommand } from "./commands/ticket";
 import { panelCommand } from "./commands/panel";
-import { settingsCommand } from "./commands/settings";
 
 // Event handlers
 import { handleInteractionCreate } from "./events/interactionCreate";
@@ -24,7 +23,7 @@ import { handleGuildMemberUpdate } from "./events/guildMemberUpdate";
 import { handleGuildMemberRemove } from "./events/guildMemberRemove";
 import { handleGuildEmojisUpdate } from "./events/guildEmojisUpdate";
 
-const commands = [pingCommand, ticketCommand, panelCommand, settingsCommand];
+const commands = [pingCommand, ticketCommand, panelCommand];
 
 async function deployCommands() {
   const applicationId = process.env.DISCORD_APPLICATION_ID;
