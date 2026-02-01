@@ -56,7 +56,7 @@ export default function NewOptionPage() {
         <CardHeader>
           <CardTitle>Server Not Configured</CardTitle>
           <CardDescription>
-            Run <code className="rounded bg-muted px-1 py-0.5">/settings setup</code> in Discord first.
+            Please complete the initial setup in the Settings page first.
           </CardDescription>
         </CardHeader>
       </Card>

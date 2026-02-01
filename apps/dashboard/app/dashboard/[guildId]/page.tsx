@@ -5,7 +5,9 @@ import { api } from "@discord-ticket/convex/convex/_generated/api";
 import { useParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Ticket, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Ticket, CheckCircle, Clock, AlertCircle, Settings } from "lucide-react";
+import Link from "next/link";
 
 export default function GuildOverviewPage() {
   const params = useParams();
@@ -22,12 +24,19 @@ export default function GuildOverviewPage() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Server Not Found</CardTitle>
+          <CardTitle>Server Not Configured</CardTitle>
           <CardDescription>
-            This server hasn't been set up yet. Run{" "}
-            <code className="rounded bg-muted px-1 py-0.5">/settings setup</code> in Discord first.
+            This server hasn't been set up yet. Complete the initial setup to start using the ticket system.
           </CardDescription>
         </CardHeader>
+        <CardContent>
+          <Button asChild>
+            <Link href={`/dashboard/${guildId}/settings`}>
+              <Settings className="mr-2 h-4 w-4" />
+              Go to Settings
+            </Link>
+          </Button>
+        </CardContent>
       </Card>
     );
   }

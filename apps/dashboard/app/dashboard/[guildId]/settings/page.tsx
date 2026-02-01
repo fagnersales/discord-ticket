@@ -58,17 +58,132 @@ export default function SettingsPage() {
     return <div className="animate-pulse">Loading...</div>;
   }
 
+  // Initial setup for new servers
+  const handleInitialSetup = async () => {
+    setSaving(true);
+    try {
+      await upsertSettings({
+        guildId,
+        ownerId: "dashboard", // Will be the first user to set up
+        maxOpenTicketsPerUser: form.maxOpenTicketsPerUser,
+        ticketCooldownSeconds: form.ticketCooldownSeconds,
+        ticketCategoryId: form.ticketCategoryId,
+        logChannelId: form.logChannelId,
+        staffRoleIds: form.staffRoleIds,
+        adminRoleIds: form.adminRoleIds,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!settings) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Server Not Configured</CardTitle>
-          <CardDescription>
-            Run <code className="rounded bg-muted px-1 py-0.5">/settings setup</code> in Discord to
-            initialize the bot for this server.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Initial Setup</h2>
+          <p className="text-muted-foreground">Configure your ticket bot for this server</p>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                General Settings
+              </CardTitle>
+              <CardDescription>Required configuration</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Ticket Category *</Label>
+                <ChannelSelect
+                  guildId={guildId}
+                  mode="single"
+                  channelTypes={["category"]}
+                  value={form.ticketCategoryId}
+                  onValueChange={(value) => setForm({ ...form, ticketCategoryId: value })}
+                  placeholder="Select category for tickets..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  Where ticket channels will be created
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Log Channel</Label>
+                <ChannelSelect
+                  guildId={guildId}
+                  mode="single"
+                  channelTypes={["text"]}
+                  value={form.logChannelId}
+                  onValueChange={(value) => setForm({ ...form, logChannelId: value })}
+                  placeholder="Select log channel..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="maxTickets">Max tickets per user</Label>
+                <Input
+                  id="maxTickets"
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={form.maxOpenTicketsPerUser}
+                  onChange={(e) => setForm({ ...form, maxOpenTicketsPerUser: parseInt(e.target.value) || 1 })}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Staff Roles
+              </CardTitle>
+              <CardDescription>Who can manage tickets</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Staff Roles *</Label>
+                <RoleSelect
+                  guildId={guildId}
+                  mode="multi"
+                  values={form.staffRoleIds}
+                  onValuesChange={(values) => setForm({ ...form, staffRoleIds: values })}
+                  placeholder="Select staff roles..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  Roles that can view and respond to tickets
+                </p>
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                <Label>Admin Roles</Label>
+                <RoleSelect
+                  guildId={guildId}
+                  mode="multi"
+                  values={form.adminRoleIds}
+                  onValuesChange={(values) => setForm({ ...form, adminRoleIds: values })}
+                  placeholder="Select admin roles..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  Roles with full management permissions
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="flex justify-end">
+          <Button
+            onClick={handleInitialSetup}
+            disabled={saving || !form.ticketCategoryId || form.staffRoleIds.length === 0}
+          >
+            <Save className="mr-2 h-4 w-4" />
+            {saving ? "Setting up..." : "Complete Setup"}
+          </Button>
+        </div>
+      </div>
     );
   }
 
