@@ -110,6 +110,13 @@ export const getServer = query({
   },
 });
 
+export const listServers = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("discordServers").collect();
+  },
+});
+
 // Channel mutations
 export const upsertChannel = mutation({
   args: { channel: channelValidator },
