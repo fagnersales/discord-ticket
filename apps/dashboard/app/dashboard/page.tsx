@@ -2,9 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@discord-ticket/convex/convex/_generated/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Server, ArrowRight, AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { Server, AlertCircle, Loader2, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -18,7 +16,7 @@ type UserGuild = {
 function getGuildIconUrl(guildId: string, iconHash: string | null): string | null {
   if (!iconHash) return null;
   const ext = iconHash.startsWith("a_") ? "gif" : "png";
-  return `https://cdn.discordapp.com/icons/${guildId}/${iconHash}.${ext}?size=64`;
+  return `https://cdn.discordapp.com/icons/${guildId}/${iconHash}.${ext}?size=128`;
 }
 
 export default function DashboardPage() {
@@ -28,25 +26,23 @@ export default function DashboardPage() {
 
   const botServers = useQuery(api.discord.listServers, {});
 
-  const fetchUserGuilds = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/discord/guilds");
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to fetch guilds");
-      }
-      const guilds = await response.json();
-      setUserGuilds(guilds);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch guilds");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchUserGuilds = async () => {
+      try {
+        const response = await fetch("/api/discord/guilds");
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || "Failed to fetch guilds");
+        }
+        const guilds = await response.json();
+        setUserGuilds(guilds);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch guilds");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchUserGuilds();
   }, []);
 
@@ -59,7 +55,7 @@ export default function DashboardPage() {
             if (!botServer) return null;
             return {
               id: userGuild.id,
-              name: botServer.name, // Use bot's synced name (more up-to-date)
+              name: botServer.name,
               icon: botServer.iconHash ?? userGuild.icon,
               owner: userGuild.owner,
               memberCount: botServer.memberCount,
@@ -74,6 +70,39 @@ export default function DashboardPage() {
         }>
       : null;
 
+  if (loading || botServers === undefined) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="mt-4 text-muted-foreground">Loading servers...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <p className="text-lg font-medium text-destructive">{error}</p>
+        <p className="text-sm text-muted-foreground mt-2 max-w-md">
+          Make sure you've signed in with Discord and granted the necessary permissions.
+        </p>
+      </div>
+    );
+  }
+
+  if (!matchedServers || matchedServers.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <Server className="h-16 w-16 text-muted-foreground/30 mb-4" />
+        <p className="text-lg font-medium">No servers found</p>
+        <p className="text-sm text-muted-foreground mt-2 max-w-md">
+          You need to be an admin of a server where the bot is installed.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -83,119 +112,43 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Server List */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Server className="h-5 w-5" />
-                Your Servers
-              </CardTitle>
-              <CardDescription>
-                Servers where you're an admin and the bot is installed
-              </CardDescription>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {matchedServers.map((server) => (
+          <Link
+            key={server.id}
+            href={`/dashboard/${server.id}`}
+            className="group flex flex-col rounded-xl border bg-card p-6 transition-all hover:border-primary/50 hover:shadow-md"
+          >
+            <div className="flex items-center gap-4">
+              {server.icon ? (
+                <img
+                  src={getGuildIconUrl(server.id, server.icon)!}
+                  alt=""
+                  className="h-14 w-14 rounded-full"
+                />
+              ) : (
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                  <Server className="h-7 w-7 text-muted-foreground" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold truncate group-hover:text-primary transition-colors">
+                  {server.name}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {server.owner ? "Owner" : "Administrator"}
+                </p>
+              </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchUserGuilds}
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading || botServers === undefined ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-muted-foreground">Loading servers...</span>
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <AlertCircle className="h-8 w-8 text-destructive mb-2" />
-              <p className="text-sm text-destructive font-medium">{error}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Make sure you've signed in with Discord and granted the necessary permissions.
-              </p>
-              <Button variant="outline" className="mt-4" onClick={fetchUserGuilds}>
-                Try Again
-              </Button>
-            </div>
-          ) : matchedServers && matchedServers.length > 0 ? (
-            <div className="grid gap-3">
-              {matchedServers.map((server) => (
-                <Link
-                  key={server.id}
-                  href={`/dashboard/${server.id}`}
-                  className="flex items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/50"
-                >
-                  {server.icon ? (
-                    <img
-                      src={getGuildIconUrl(server.id, server.icon)!}
-                      alt=""
-                      className="h-12 w-12 rounded-full"
-                    />
-                  ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                      <Server className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{server.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {server.owner ? "Owner" : "Administrator"}
-                      {server.memberCount && ` • ${server.memberCount.toLocaleString()} members`}
-                    </p>
-                  </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground" />
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Server className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <p className="text-sm text-muted-foreground">
-                No servers found where you're an admin and the bot is installed.
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Invite the bot to a server where you have admin permissions, then refresh.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Setup Instructions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Getting Started</CardTitle>
-          <CardDescription>
-            New to the bot? Follow these steps to set up a server
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ol className="list-inside list-decimal space-y-2 text-sm text-muted-foreground">
-            <li>Invite the bot to your server with the required permissions</li>
-            <li>
-              Run <code className="rounded bg-muted px-1 py-0.5">/settings setup</code> to
-              initialize the bot
-            </li>
-            <li>
-              Create ticket options with{" "}
-              <code className="rounded bg-muted px-1 py-0.5">/settings option</code>
-            </li>
-            <li>
-              Create a panel with{" "}
-              <code className="rounded bg-muted px-1 py-0.5">/panel create</code>
-            </li>
-            <li>Come back here to manage tickets and view transcripts</li>
-          </ol>
-        </CardContent>
-      </Card>
+            {server.memberCount && (
+              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                <Users className="h-4 w-4" />
+                <span>{server.memberCount.toLocaleString()} members</span>
+              </div>
+            )}
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
-
