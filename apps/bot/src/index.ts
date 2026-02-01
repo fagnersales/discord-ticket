@@ -1,8 +1,20 @@
-import { GatewayDispatchEvents, InteractionType, MessageFlags, Routes } from "@discordjs/core";
+import { GatewayDispatchEvents, Routes } from "@discordjs/core";
 import { client, gateway, rest } from "./client";
-import { pingCommand } from "./commands/ping";
 
-const commands = [pingCommand];
+// Commands
+import { pingCommand } from "./commands/ping";
+import { ticketCommand } from "./commands/ticket";
+import { panelCommand } from "./commands/panel";
+import { settingsCommand } from "./commands/settings";
+
+// Event handlers
+import { handleInteractionCreate } from "./events/interactionCreate";
+import { handleMessageCreate } from "./events/messageCreate";
+import { handleMessageUpdate } from "./events/messageUpdate";
+import { handleMessageDelete } from "./events/messageDelete";
+import { handleChannelDelete } from "./events/channelDelete";
+
+const commands = [pingCommand, ticketCommand, panelCommand, settingsCommand];
 
 async function deployCommands() {
   const applicationId = process.env.DISCORD_APPLICATION_ID;
@@ -25,14 +37,45 @@ client.on(GatewayDispatchEvents.Ready, async ({ data }) => {
 });
 
 client.on(GatewayDispatchEvents.InteractionCreate, async ({ data: interaction, api }) => {
-  if (interaction.type !== InteractionType.ApplicationCommand) return;
-  if (!("name" in interaction.data)) return;
+  try {
+    await handleInteractionCreate(interaction, api);
+  } catch (error) {
+    console.error("Error handling interaction:", error);
+  }
+});
 
-  if (interaction.data.name === "ping") {
-    await api.interactions.reply(interaction.id, interaction.token, {
-      content: "Pong!",
-      flags: MessageFlags.Ephemeral,
-    });
+client.on(GatewayDispatchEvents.MessageCreate, async ({ data: message }) => {
+  try {
+    await handleMessageCreate(message);
+  } catch (error) {
+    console.error("Error handling message create:", error);
+  }
+});
+
+client.on(GatewayDispatchEvents.MessageUpdate, async ({ data: message }) => {
+  try {
+    // MessageUpdate can have partial data, so we need to check for required fields
+    if (message.author && message.content !== undefined) {
+      await handleMessageUpdate(message as any);
+    }
+  } catch (error) {
+    console.error("Error handling message update:", error);
+  }
+});
+
+client.on(GatewayDispatchEvents.MessageDelete, async ({ data }) => {
+  try {
+    await handleMessageDelete(data);
+  } catch (error) {
+    console.error("Error handling message delete:", error);
+  }
+});
+
+client.on(GatewayDispatchEvents.ChannelDelete, async ({ data }) => {
+  try {
+    await handleChannelDelete(data);
+  } catch (error) {
+    console.error("Error handling channel delete:", error);
   }
 });
 

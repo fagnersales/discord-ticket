@@ -8,7 +8,10 @@ export const rest = new REST({ version: "10" }).setToken(token);
 
 export const gateway = new WebSocketManager({
   rest,
-  intents: GatewayIntentBits.Guilds | GatewayIntentBits.GuildMessages,
+  intents:
+    GatewayIntentBits.Guilds |
+    GatewayIntentBits.GuildMessages |
+    GatewayIntentBits.MessageContent,
 });
 gateway.setToken(token);
 
