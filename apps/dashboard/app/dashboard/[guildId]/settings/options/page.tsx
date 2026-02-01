@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ListChecks, Edit, Trash2, GripVertical, MessageSquare } from "lucide-react";
+import { ListChecks, Edit, Trash2, GripVertical, MessageSquare, Plus } from "lucide-react";
 import { DisplayRoles } from "@/components/discord";
 import type { Doc, Id } from "@discord-ticket/convex/convex/_generated/dataModel";
 
@@ -42,6 +42,12 @@ export default function TicketOptionsPage() {
             Manage ticket categories and their configuration
           </p>
         </div>
+        <Button asChild>
+          <Link href={`/dashboard/${guildId}/settings/options/new`}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Option
+          </Link>
+        </Button>
       </div>
 
       <Card>
@@ -51,8 +57,7 @@ export default function TicketOptionsPage() {
             Options ({options.length})
           </CardTitle>
           <CardDescription>
-            Create options using <code className="rounded bg-muted px-1">/settings option</code> in
-            Discord, then customize them here.
+            Create ticket options to let users choose what type of support they need.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -60,10 +65,12 @@ export default function TicketOptionsPage() {
             <div className="flex flex-col items-center justify-center py-12">
               <ListChecks className="h-12 w-12 text-muted-foreground" />
               <p className="mt-4 text-muted-foreground">No ticket options yet</p>
-              <p className="text-sm text-muted-foreground">
-                Use <code className="rounded bg-muted px-1">/settings option</code> in Discord to
-                create one.
-              </p>
+              <Button variant="outline" className="mt-2" asChild>
+                <Link href={`/dashboard/${guildId}/settings/options/new`}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create your first option
+                </Link>
+              </Button>
             </div>
           ) : (
             <div className="space-y-3">

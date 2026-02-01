@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@discord-ticket/convex/convex/_generated/api";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,22 +14,20 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Save, Plus, Trash2, GripVertical } from "lucide-react";
 import Link from "next/link";
 import { ChannelSelect, RoleSelect } from "@/components/discord";
-import type { Id } from "@discord-ticket/convex/convex/_generated/dataModel";
 
-export default function EditOptionPage() {
+export default function NewOptionPage() {
   const params = useParams();
   const router = useRouter();
   const guildId = params.guildId as string;
-  const optionId = params.optionId as Id<"ticketOptions">;
 
-  const option = useQuery(api.ticketOptions.get, { id: optionId });
-  const updateOption = useMutation(api.ticketOptions.update);
+  const settings = useQuery(api.serverSettings.getByGuildId, { guildId });
+  const createOption = useMutation(api.ticketOptions.create);
 
   const [form, setForm] = useState({
     name: "",
     description: "",
     emoji: "",
-    channelNameTemplate: "",
+    channelNameTemplate: "ticket-{ticketNumber}",
     categoryId: undefined as string | undefined,
     responsibleRoleIds: [] as string[],
     useModal: false,
@@ -48,57 +46,38 @@ export default function EditOptionPage() {
 
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (option) {
-      setForm({
-        name: option.name,
-        description: option.description ?? "",
-        emoji: option.emoji ?? "",
-        channelNameTemplate: option.channelNameTemplate,
-        categoryId: option.categoryId,
-        responsibleRoleIds: option.responsibleRoleIds,
-        useModal: option.useModal,
-        modalTitle: option.modalTitle ?? "",
-        modalFields:
-          option.modalFields?.map((f) => ({
-            id: f.id,
-            label: f.label,
-            placeholder: f.placeholder ?? "",
-            style: f.style,
-            required: f.required,
-          })) ?? [],
-        initialMessageContent: option.initialMessage?.content ?? "",
-        initialMessageTitle: option.initialMessage?.embed?.title ?? "",
-        initialMessageDescription: option.initialMessage?.embed?.description ?? "",
-      });
-    }
-  }, [option]);
-
-  if (option === undefined) {
+  if (settings === undefined) {
     return <div className="animate-pulse">Loading...</div>;
   }
 
-  if (!option) {
+  if (!settings) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Option Not Found</CardTitle>
+          <CardTitle>Server Not Configured</CardTitle>
+          <CardDescription>
+            Run <code className="rounded bg-muted px-1 py-0.5">/settings setup</code> in Discord first.
+          </CardDescription>
         </CardHeader>
       </Card>
     );
   }
 
-  const handleSave = async () => {
+  const handleCreate = async () => {
+    if (!form.name.trim()) return;
+
     setSaving(true);
     try {
-      await updateOption({
-        id: optionId,
-        name: form.name,
+      await createOption({
+        guildId,
+        name: form.name.trim(),
         description: form.description || undefined,
         emoji: form.emoji || undefined,
-        channelNameTemplate: form.channelNameTemplate,
+        channelNameTemplate: form.channelNameTemplate || "ticket-{ticketNumber}",
         categoryId: form.categoryId,
-        responsibleRoleIds: form.responsibleRoleIds,
+        responsibleRoleIds: form.responsibleRoleIds.length > 0
+          ? form.responsibleRoleIds
+          : settings.staffRoleIds,
         useModal: form.useModal,
         modalTitle: form.modalTitle || undefined,
         modalFields: form.useModal
@@ -159,6 +138,8 @@ export default function EditOptionPage() {
     setForm({ ...form, modalFields: newFields });
   };
 
+  const isValid = form.name.trim().length > 0;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -168,8 +149,8 @@ export default function EditOptionPage() {
           </Link>
         </Button>
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Edit Option</h2>
-          <p className="text-muted-foreground">Configure "{option.name}"</p>
+          <h2 className="text-3xl font-bold tracking-tight">New Ticket Option</h2>
+          <p className="text-muted-foreground">Create a new ticket type</p>
         </div>
       </div>
 
@@ -182,11 +163,12 @@ export default function EditOptionPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">Name *</Label>
               <Input
                 id="name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Support"
               />
             </div>
             <div className="space-y-2">
@@ -195,7 +177,7 @@ export default function EditOptionPage() {
                 id="description"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Optional description"
+                placeholder="Get help with general questions"
               />
             </div>
             <div className="space-y-2">
@@ -213,6 +195,7 @@ export default function EditOptionPage() {
                 id="channelName"
                 value={form.channelNameTemplate}
                 onChange={(e) => setForm({ ...form, channelNameTemplate: e.target.value })}
+                placeholder="ticket-{ticketNumber}"
               />
               <p className="text-xs text-muted-foreground">
                 Available: {"{ticketNumber}"}, {"{username}"}, {"{option}"}
@@ -239,7 +222,7 @@ export default function EditOptionPage() {
                 placeholder="Use default category..."
               />
               <p className="text-xs text-muted-foreground">
-                Override the default ticket category for this option
+                Leave empty to use the default ticket category
               </p>
             </div>
             <Separator />
@@ -250,10 +233,10 @@ export default function EditOptionPage() {
                 mode="multi"
                 values={form.responsibleRoleIds}
                 onValuesChange={(values) => setForm({ ...form, responsibleRoleIds: values })}
-                placeholder="Select roles..."
+                placeholder="Use staff roles..."
               />
               <p className="text-xs text-muted-foreground">
-                Roles that will be mentioned when a ticket is created
+                Leave empty to use server staff roles
               </p>
             </div>
           </CardContent>
@@ -302,26 +285,26 @@ export default function EditOptionPage() {
           </CardContent>
         </Card>
 
-        {/* Status Card */}
+        {/* Preview */}
         <Card>
           <CardHeader>
-            <CardTitle>Status</CardTitle>
-            <CardDescription>Option state and order</CardDescription>
+            <CardTitle>Preview</CardTitle>
+            <CardDescription>How this option will appear</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Status</span>
-              <Badge variant={option.enabled ? "default" : "secondary"}>
-                {option.enabled ? "Enabled" : "Disabled"}
-              </Badge>
+          <CardContent>
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-lg">
+                  {form.emoji || "📋"}
+                </div>
+                <div>
+                  <p className="font-medium">{form.name || "Option Name"}</p>
+                  {form.description && (
+                    <p className="text-sm text-muted-foreground">{form.description}</p>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Order</span>
-              <span className="text-sm text-muted-foreground">#{option.order + 1}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Toggle enabled/disabled from the options list page
-            </p>
           </CardContent>
         </Card>
 
@@ -371,6 +354,12 @@ export default function EditOptionPage() {
                     Add Field
                   </Button>
                 </div>
+
+                {form.modalFields.length === 0 && (
+                  <p className="text-sm text-muted-foreground py-4 text-center">
+                    No fields added yet. Click "Add Field" to create a form question.
+                  </p>
+                )}
 
                 {form.modalFields.map((field, index) => (
                   <div key={field.id} className="rounded-lg border p-4 space-y-3">
@@ -448,9 +437,9 @@ export default function EditOptionPage() {
         <Button variant="outline" asChild>
           <Link href={`/dashboard/${guildId}/settings/options`}>Cancel</Link>
         </Button>
-        <Button onClick={handleSave} disabled={saving}>
+        <Button onClick={handleCreate} disabled={saving || !isValid}>
           <Save className="mr-2 h-4 w-4" />
-          {saving ? "Saving..." : "Save Changes"}
+          {saving ? "Creating..." : "Create Option"}
         </Button>
       </div>
     </div>

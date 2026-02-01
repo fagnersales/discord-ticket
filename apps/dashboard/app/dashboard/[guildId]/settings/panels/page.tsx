@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LayoutPanelLeft, Edit, Trash2, Hash } from "lucide-react";
+import { LayoutPanelLeft, Edit, Trash2, Hash, Plus } from "lucide-react";
 import type { Id } from "@discord-ticket/convex/convex/_generated/dataModel";
 
 export default function PanelsPage() {
@@ -41,6 +41,12 @@ export default function PanelsPage() {
           <h2 className="text-3xl font-bold tracking-tight">Ticket Panels</h2>
           <p className="text-muted-foreground">Manage ticket panel messages</p>
         </div>
+        <Button asChild>
+          <Link href={`/dashboard/${guildId}/settings/panels/new`}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Panel
+          </Link>
+        </Button>
       </div>
 
       <Card>
@@ -50,9 +56,7 @@ export default function PanelsPage() {
             Panels ({panels.length})
           </CardTitle>
           <CardDescription>
-            Create panels using <code className="rounded bg-muted px-1">/panel create</code> in
-            Discord. Panels let users create tickets by clicking buttons or selecting from a
-            dropdown.
+            Panels let users create tickets by clicking buttons or selecting from a dropdown.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -60,9 +64,12 @@ export default function PanelsPage() {
             <div className="flex flex-col items-center justify-center py-12">
               <LayoutPanelLeft className="h-12 w-12 text-muted-foreground" />
               <p className="mt-4 text-muted-foreground">No panels created yet</p>
-              <p className="text-sm text-muted-foreground">
-                Use <code className="rounded bg-muted px-1">/panel create</code> in Discord
-              </p>
+              <Button variant="outline" className="mt-2" asChild>
+                <Link href={`/dashboard/${guildId}/settings/panels/new`}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create your first panel
+                </Link>
+              </Button>
             </div>
           ) : (
             <div className="space-y-3">
@@ -122,13 +129,19 @@ export default function PanelsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Refresh Panels</CardTitle>
+          <CardTitle>Posting & Refreshing Panels</CardTitle>
           <CardDescription>
-            If you've updated ticket options, use{" "}
-            <code className="rounded bg-muted px-1">/panel refresh</code> in Discord to update the
-            buttons/dropdown on existing panels.
+            After creating or editing a panel here, use these Discord commands:
           </CardDescription>
         </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-sm">
+            <code className="rounded bg-muted px-1">/panel post</code> - Post a new panel message to Discord
+          </p>
+          <p className="text-sm">
+            <code className="rounded bg-muted px-1">/panel refresh</code> - Update buttons/dropdown on an existing panel message
+          </p>
+        </CardContent>
       </Card>
     </div>
   );
