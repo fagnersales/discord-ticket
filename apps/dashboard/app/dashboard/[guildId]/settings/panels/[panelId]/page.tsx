@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "convex/_generated/api";
+import { api } from "@discord-ticket/convex/convex/_generated/api";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Save, Eye } from "lucide-react";
 import Link from "next/link";
-import type { Id } from "convex/_generated/dataModel";
+import type { Id } from "@discord-ticket/convex/convex/_generated/dataModel";
 
 export default function EditPanelPage() {
   const params = useParams();

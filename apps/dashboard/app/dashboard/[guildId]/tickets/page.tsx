@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "convex/react";
-import { api } from "convex/_generated/api";
+import { api } from "@discord-ticket/convex/convex/_generated/api";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Ticket, Search, ExternalLink } from "lucide-react";
-import type { Doc } from "convex/_generated/dataModel";
+import type { Doc } from "@discord-ticket/convex/convex/_generated/dataModel";
 
 export default function TicketsPage() {
   const params = useParams();
