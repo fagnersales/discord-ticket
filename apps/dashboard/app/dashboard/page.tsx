@@ -168,19 +168,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Manual Entry Fallback */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Enter Server ID Manually</CardTitle>
-          <CardDescription>
-            If your server isn't showing up, you can enter the ID directly
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ServerIdInput />
-        </CardContent>
-      </Card>
-
       {/* Setup Instructions */}
       <Card>
         <CardHeader>
@@ -212,26 +199,3 @@ export default function DashboardPage() {
   );
 }
 
-function ServerIdInput() {
-  return (
-    <form
-      className="flex gap-2"
-      action={(formData) => {
-        const guildId = formData.get("guildId") as string;
-        if (guildId) {
-          window.location.href = `/dashboard/${guildId}`;
-        }
-      }}
-    >
-      <input
-        name="guildId"
-        placeholder="Enter Server ID"
-        className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      />
-      <Button type="submit">
-        Go
-        <ArrowRight className="ml-2 h-4 w-4" />
-      </Button>
-    </form>
-  );
-}
