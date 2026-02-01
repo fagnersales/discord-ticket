@@ -7,7 +7,8 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ListChecks, Plus, Edit, Trash2, GripVertical, MessageSquare } from "lucide-react";
+import { ListChecks, Edit, Trash2, GripVertical, MessageSquare } from "lucide-react";
+import { DisplayRoles } from "@/components/discord";
 import type { Doc, Id } from "@discord-ticket/convex/convex/_generated/dataModel";
 
 export default function TicketOptionsPage() {
@@ -78,7 +79,7 @@ export default function TicketOptionsPage() {
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-lg">
                         {option.emoji ?? "📋"}
                       </div>
-                      <div>
+                      <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{option.name}</span>
                           <Badge variant={option.enabled ? "default" : "secondary"}>
@@ -95,9 +96,16 @@ export default function TicketOptionsPage() {
                           <p className="text-sm text-muted-foreground">{option.description}</p>
                         )}
                         <p className="text-xs text-muted-foreground">
-                          Channel: {option.channelNameTemplate} •{" "}
-                          {option.responsibleRoleIds.length} role(s)
+                          Channel template: {option.channelNameTemplate}
                         </p>
+                        {option.responsibleRoleIds.length > 0 && (
+                          <div className="pt-1">
+                            <DisplayRoles
+                              guildId={guildId}
+                              roleIds={option.responsibleRoleIds}
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

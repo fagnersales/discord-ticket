@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LayoutPanelLeft, Edit, Trash2, ExternalLink } from "lucide-react";
+import { LayoutPanelLeft, Edit, Trash2, Hash } from "lucide-react";
 import type { Id } from "@discord-ticket/convex/convex/_generated/dataModel";
 
 export default function PanelsPage() {
@@ -16,6 +16,7 @@ export default function PanelsPage() {
 
   const panels = useQuery(api.ticketPanels.listByGuild, { guildId });
   const options = useQuery(api.ticketOptions.listByGuild, { guildId });
+  const channels = useQuery(api.discord.listChannels, { guildId });
   const removePanel = useMutation(api.ticketPanels.remove);
 
   if (panels === undefined || options === undefined) {
@@ -26,6 +27,11 @@ export default function PanelsPage() {
     if (confirm("Are you sure you want to delete this panel? The message in Discord will remain but won't work.")) {
       await removePanel({ id });
     }
+  };
+
+  const getChannelName = (channelId: string) => {
+    const channel = channels?.find((c) => c.channelId === channelId);
+    return channel?.name ?? "Unknown channel";
   };
 
   return (
@@ -80,14 +86,9 @@ export default function PanelsPage() {
                           {panel.embed.description}
                         </p>
                       )}
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>Channel: {panel.channelId}</span>
-                        {panel.messageId && (
-                          <>
-                            <span>•</span>
-                            <span>Message: {panel.messageId}</span>
-                          </>
-                        )}
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Hash className="h-3 w-3" />
+                        <span>{getChannelName(panel.channelId)}</span>
                       </div>
                       <div className="flex flex-wrap gap-1 pt-1">
                         {panelOptions.map((opt) => (

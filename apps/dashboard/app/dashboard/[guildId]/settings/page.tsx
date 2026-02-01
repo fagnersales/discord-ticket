@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@discord-ticket/convex/convex/_generated/api";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -8,10 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Settings, Users, Shield, Ban, ListChecks, LayoutPanelLeft, ChevronRight, Save } from "lucide-react";
-import { useState } from "react";
+import { Settings, Shield, Ban, ListChecks, LayoutPanelLeft, ChevronRight } from "lucide-react";
+import { DisplayChannel, DisplayRoles, DisplayMembers } from "@/components/discord";
 
 export default function SettingsPage() {
   const params = useParams();
@@ -20,6 +18,7 @@ export default function SettingsPage() {
   const settings = useQuery(api.serverSettings.getByGuildId, { guildId });
   const options = useQuery(api.ticketOptions.listByGuild, { guildId });
   const panels = useQuery(api.ticketPanels.listByGuild, { guildId });
+  const channels = useQuery(api.discord.listChannels, { guildId });
 
   if (settings === undefined || options === undefined || panels === undefined) {
     return <div className="animate-pulse">Loading...</div>;
@@ -39,6 +38,12 @@ export default function SettingsPage() {
     );
   }
 
+  // Get channel name for panels
+  const getChannelName = (channelId: string) => {
+    const channel = channels?.find((c) => c.channelId === channelId);
+    return channel?.name ?? "Unknown";
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -57,11 +62,11 @@ export default function SettingsPage() {
             <CardDescription>Core bot configuration</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Max tickets per user</span>
               <span className="font-medium">{settings.maxOpenTicketsPerUser}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Cooldown</span>
               <span className="font-medium">
                 {settings.ticketCooldownSeconds > 0
@@ -69,22 +74,18 @@ export default function SettingsPage() {
                   : "None"}
               </span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Ticket category</span>
               <span className="font-medium">
-                {settings.ticketCategoryId ? `<#${settings.ticketCategoryId}>` : "Not set"}
+                <DisplayChannel guildId={guildId} channelId={settings.ticketCategoryId} />
               </span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Log channel</span>
               <span className="font-medium">
-                {settings.logChannelId ? `<#${settings.logChannelId}>` : "Not set"}
+                <DisplayChannel guildId={guildId} channelId={settings.logChannelId} />
               </span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Use <code className="rounded bg-muted px-1">/settings setup</code> in Discord to
-              modify these settings.
-            </p>
           </CardContent>
         </Card>
 
@@ -100,37 +101,21 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div>
               <h4 className="text-sm font-medium mb-2">Staff Roles</h4>
-              {settings.staffRoleIds.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No staff roles configured</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {settings.staffRoleIds.map((roleId) => (
-                    <Badge key={roleId} variant="secondary">
-                      Role: {roleId}
-                    </Badge>
-                  ))}
-                </div>
-              )}
+              <DisplayRoles
+                guildId={guildId}
+                roleIds={settings.staffRoleIds}
+                emptyText="No staff roles configured"
+              />
             </div>
             <Separator />
             <div>
               <h4 className="text-sm font-medium mb-2">Admin Roles</h4>
-              {settings.adminRoleIds.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No admin roles configured</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {settings.adminRoleIds.map((roleId) => (
-                    <Badge key={roleId} variant="default">
-                      Role: {roleId}
-                    </Badge>
-                  ))}
-                </div>
-              )}
+              <DisplayRoles
+                guildId={guildId}
+                roleIds={settings.adminRoleIds}
+                emptyText="No admin roles configured"
+              />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Use <code className="rounded bg-muted px-1">/settings staff</code> or{" "}
-              <code className="rounded bg-muted px-1">/settings admin</code> to manage roles.
-            </p>
           </CardContent>
         </Card>
 
@@ -213,11 +198,11 @@ export default function SettingsPage() {
                     <div>
                       <span className="font-medium">{panel.embed.title ?? "Untitled Panel"}</span>
                       <p className="text-xs text-muted-foreground">
-                        Style: {panel.style} • {panel.optionIds.length} option(s)
+                        {panel.style} • {panel.optionIds.length} option(s)
                       </p>
                     </div>
                     <Badge variant="outline">
-                      Channel: {panel.channelId.slice(-6)}
+                      #{getChannelName(panel.channelId)}
                     </Badge>
                   </div>
                 ))}
@@ -238,21 +223,11 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {settings.blacklistedUserIds.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No blacklisted users</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {settings.blacklistedUserIds.map((userId) => (
-                  <Badge key={userId} variant="destructive">
-                    User: {userId}
-                  </Badge>
-                ))}
-              </div>
-            )}
-            <p className="mt-4 text-xs text-muted-foreground">
-              Use <code className="rounded bg-muted px-1">/settings blacklist</code> to manage the
-              blacklist in Discord.
-            </p>
+            <DisplayMembers
+              guildId={guildId}
+              userIds={settings.blacklistedUserIds}
+              emptyText="No blacklisted users"
+            />
           </CardContent>
         </Card>
       </div>
