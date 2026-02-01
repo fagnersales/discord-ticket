@@ -94,11 +94,12 @@ export default defineSchema({
     .index("by_guild", ["guildId"])
     .index("by_guild_order", ["guildId", "order"]),
 
-  // Panel messages that users interact with to create tickets
+  // Panel configurations (reusable templates)
   ticketPanels: defineTable({
     guildId: discordSnowflake,
-    channelId: discordSnowflake,
-    messageId: v.optional(discordSnowflake), // Set after message is posted
+
+    // Panel name for identification in dashboard
+    name: v.string(),
 
     // Panel content
     embed: embedData,
@@ -112,9 +113,20 @@ export default defineSchema({
     // For dropdown: placeholder text
     dropdownPlaceholder: v.optional(v.string()),
   })
+    .index("by_guild", ["guildId"]),
+
+  // Posted panel messages (references to Discord messages)
+  panelMessages: defineTable({
+    panelId: v.id("ticketPanels"),
+    guildId: discordSnowflake,
+    channelId: discordSnowflake,
+    messageId: discordSnowflake,
+    postedAt: v.number(),
+  })
+    .index("by_panel", ["panelId"])
     .index("by_guild", ["guildId"])
-    .index("by_channel", ["channelId"])
-    .index("by_message", ["messageId"]),
+    .index("by_message", ["messageId"])
+    .index("by_channel_message", ["channelId", "messageId"]),
 
   // Individual tickets
   tickets: defineTable({

@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Save, Eye, AlertTriangle } from "lucide-react";
 import Link from "next/link";
-import { ChannelSelect } from "@/components/discord";
 import type { Id } from "@discord-ticket/convex/convex/_generated/dataModel";
 
 export default function NewPanelPage() {
@@ -23,7 +22,7 @@ export default function NewPanelPage() {
   const createPanel = useMutation(api.ticketPanels.create);
 
   const [form, setForm] = useState({
-    channelId: undefined as string | undefined,
+    name: "",
     title: "Support Tickets",
     description: "Click a button below to create a ticket.",
     color: "5865F2",
@@ -39,13 +38,13 @@ export default function NewPanelPage() {
   }
 
   const handleCreate = async () => {
-    if (!form.channelId || form.selectedOptionIds.length === 0) return;
+    if (!form.name.trim() || form.selectedOptionIds.length === 0) return;
 
     setSaving(true);
     try {
-      await createPanel({
+      const panelId = await createPanel({
         guildId,
-        channelId: form.channelId,
+        name: form.name.trim(),
         embed: {
           title: form.title || undefined,
           description: form.description || undefined,
@@ -55,7 +54,7 @@ export default function NewPanelPage() {
         optionIds: form.selectedOptionIds,
         dropdownPlaceholder: form.style === "dropdown" ? form.dropdownPlaceholder || undefined : undefined,
       });
-      router.push(`/dashboard/${guildId}/settings/panels`);
+      router.push(`/dashboard/${guildId}/settings/panels/${panelId}`);
     } finally {
       setSaving(false);
     }
@@ -71,7 +70,7 @@ export default function NewPanelPage() {
     });
   };
 
-  const isValid = form.channelId && form.selectedOptionIds.length > 0;
+  const isValid = form.name.trim().length > 0 && form.selectedOptionIds.length > 0;
 
   return (
     <div className="space-y-6">
@@ -83,7 +82,7 @@ export default function NewPanelPage() {
         </Button>
         <div>
           <h2 className="text-3xl font-bold tracking-tight">New Panel</h2>
-          <p className="text-muted-foreground">Create a ticket panel message</p>
+          <p className="text-muted-foreground">Create a ticket panel configuration</p>
         </div>
       </div>
 
@@ -105,25 +104,23 @@ export default function NewPanelPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Channel & Style */}
+        {/* Basic Settings */}
         <Card>
           <CardHeader>
             <CardTitle>Panel Settings</CardTitle>
-            <CardDescription>Where and how the panel is displayed</CardDescription>
+            <CardDescription>Basic panel configuration</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Channel *</Label>
-              <ChannelSelect
-                guildId={guildId}
-                mode="single"
-                channelTypes={["text"]}
-                value={form.channelId}
-                onValueChange={(value) => setForm({ ...form, channelId: value })}
-                placeholder="Select channel to post panel..."
+              <Label htmlFor="name">Panel Name *</Label>
+              <Input
+                id="name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Support Panel"
               />
               <p className="text-xs text-muted-foreground">
-                The panel message will be posted to this channel
+                Internal name to identify this panel
               </p>
             </div>
             <div className="space-y-2">
@@ -209,7 +206,7 @@ export default function NewPanelPage() {
         </Card>
 
         {/* Preview */}
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
@@ -310,13 +307,11 @@ export default function NewPanelPage() {
 
       <Card className="border-blue-500/30 bg-blue-500/5">
         <CardHeader>
-          <CardTitle className="text-sm">Note about Panel Messages</CardTitle>
+          <CardTitle className="text-sm">Next Step</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            After creating this panel, you'll need to use the{" "}
-            <code className="rounded bg-muted px-1">/panel post</code> command in Discord to actually
-            send the message. The panel configuration will be saved and ready to post.
+            After creating the panel, you'll be taken to the edit page where you can post it to any channel.
           </p>
         </CardContent>
       </Card>

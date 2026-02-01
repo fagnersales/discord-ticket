@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@discord-ticket/convex/convex/_generated/api";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Save, Eye } from "lucide-react";
+import { ArrowLeft, Save, Eye, Send, Trash2, Hash, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { ChannelSelect, DisplayChannel } from "@/components/discord";
 import type { Id } from "@discord-ticket/convex/convex/_generated/dataModel";
 
 export default function EditPanelPage() {
@@ -21,32 +23,45 @@ export default function EditPanelPage() {
   const panelId = params.panelId as Id<"ticketPanels">;
 
   const panel = useQuery(api.ticketPanels.get, { id: panelId });
-  const options = useQuery(api.ticketOptions.listByGuild, { guildId });
+  const options = useQuery(api.ticketOptions.listEnabledByGuild, { guildId });
+  const panelMessages = useQuery(api.ticketPanels.listMessagesByPanel, { panelId });
   const updatePanel = useMutation(api.ticketPanels.update);
+  const removeMessage = useMutation(api.ticketPanels.removeMessageById);
 
   const [form, setForm] = useState({
+    name: "",
     title: "",
     description: "",
     color: "",
+    style: "buttons" as "buttons" | "dropdown",
     dropdownPlaceholder: "",
     selectedOptionIds: [] as Id<"ticketOptions">[],
   });
 
   const [saving, setSaving] = useState(false);
 
+  // For posting to channel
+  const [postChannelId, setPostChannelId] = useState<string | undefined>(undefined);
+  const [posting, setPosting] = useState(false);
+
+  // Action to post panel (we'll create this)
+  const postPanel = useAction(api.panelActions.postPanel);
+
   useEffect(() => {
     if (panel) {
       setForm({
+        name: panel.name,
         title: panel.embed.title ?? "",
         description: panel.embed.description ?? "",
         color: panel.embed.color?.toString(16).padStart(6, "0") ?? "",
+        style: panel.style,
         dropdownPlaceholder: panel.dropdownPlaceholder ?? "",
         selectedOptionIds: panel.optionIds,
       });
     }
   }, [panel]);
 
-  if (panel === undefined || options === undefined) {
+  if (panel === undefined || options === undefined || panelMessages === undefined) {
     return <div className="animate-pulse">Loading...</div>;
   }
 
@@ -65,17 +80,41 @@ export default function EditPanelPage() {
     try {
       await updatePanel({
         id: panelId,
+        name: form.name,
         embed: {
           title: form.title || undefined,
           description: form.description || undefined,
           color: form.color ? parseInt(form.color, 16) : undefined,
         },
+        style: form.style,
         dropdownPlaceholder: form.dropdownPlaceholder || undefined,
         optionIds: form.selectedOptionIds,
       });
-      router.push(`/dashboard/${guildId}/settings/panels`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePost = async () => {
+    if (!postChannelId) return;
+    setPosting(true);
+    try {
+      await postPanel({
+        panelId,
+        channelId: postChannelId,
+      });
+      setPostChannelId(undefined);
+    } catch (error) {
+      console.error("Failed to post panel:", error);
+      alert("Failed to post panel. Make sure the bot has permission to send messages in that channel.");
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const handleRemoveMessage = async (id: Id<"panelMessages">) => {
+    if (confirm("Remove this reference? The message will remain in Discord but won't work anymore.")) {
+      await removeMessage({ id });
     }
   };
 
@@ -99,13 +138,66 @@ export default function EditPanelPage() {
         </Button>
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Edit Panel</h2>
-          <p className="text-muted-foreground">
-            Configure panel embed and options
-          </p>
+          <p className="text-muted-foreground">Configure "{panel.name}"</p>
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
+        {/* Basic Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Panel Settings</CardTitle>
+            <CardDescription>Basic panel configuration</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Panel Name</Label>
+              <Input
+                id="name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Support Panel"
+              />
+              <p className="text-xs text-muted-foreground">
+                Internal name for identification
+              </p>
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <Label>Style</Label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    checked={form.style === "buttons"}
+                    onChange={() => setForm({ ...form, style: "buttons" })}
+                  />
+                  <span className="text-sm">Buttons</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    checked={form.style === "dropdown"}
+                    onChange={() => setForm({ ...form, style: "dropdown" })}
+                  />
+                  <span className="text-sm">Dropdown</span>
+                </label>
+              </div>
+            </div>
+            {form.style === "dropdown" && (
+              <div className="space-y-2">
+                <Label htmlFor="placeholder">Dropdown Placeholder</Label>
+                <Input
+                  id="placeholder"
+                  value={form.dropdownPlaceholder}
+                  onChange={(e) => setForm({ ...form, dropdownPlaceholder: e.target.value })}
+                  placeholder="Select a ticket type..."
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Embed Settings */}
         <Card>
           <CardHeader>
@@ -150,17 +242,6 @@ export default function EditPanelPage() {
                 )}
               </div>
             </div>
-            {panel.style === "dropdown" && (
-              <div className="space-y-2">
-                <Label htmlFor="placeholder">Dropdown Placeholder</Label>
-                <Input
-                  id="placeholder"
-                  value={form.dropdownPlaceholder}
-                  onChange={(e) => setForm({ ...form, dropdownPlaceholder: e.target.value })}
-                  placeholder="Select a ticket type..."
-                />
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -188,7 +269,7 @@ export default function EditPanelPage() {
               )}
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              {panel.style === "buttons" ? (
+              {form.style === "buttons" ? (
                 form.selectedOptionIds.map((optionId) => {
                   const opt = options.find((o) => o._id === optionId);
                   return opt ? (
@@ -209,6 +290,64 @@ export default function EditPanelPage() {
           </CardContent>
         </Card>
 
+        {/* Post to Channel */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5" />
+              Post Panel
+            </CardTitle>
+            <CardDescription>Send this panel to a channel</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <ChannelSelect
+                  guildId={guildId}
+                  mode="single"
+                  channelTypes={["text"]}
+                  value={postChannelId}
+                  onValueChange={setPostChannelId}
+                  placeholder="Select channel..."
+                />
+              </div>
+              <Button onClick={handlePost} disabled={!postChannelId || posting}>
+                <Send className="mr-2 h-4 w-4" />
+                {posting ? "Posting..." : "Post"}
+              </Button>
+            </div>
+            {panelMessages.length > 0 && (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Posted Messages ({panelMessages.length})</p>
+                  {panelMessages.map((pm) => (
+                    <div key={pm._id} className="flex items-center justify-between rounded border p-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Hash className="h-4 w-4 text-muted-foreground" />
+                        <DisplayChannel guildId={guildId} channelId={pm.channelId} />
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(pm.postedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveMessage(pm._id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            <p className="text-xs text-muted-foreground">
+              After editing, use <code className="rounded bg-muted px-1">/panel refresh</code> to update all posted messages.
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Options Selection */}
         <Card className="lg:col-span-2">
           <CardHeader>
@@ -218,39 +357,44 @@ export default function EditPanelPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-              {options.map((option) => {
-                const isSelected = form.selectedOptionIds.includes(option._id);
-                return (
-                  <label
-                    key={option._id}
-                    className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
-                      isSelected ? "border-primary bg-primary/5" : "hover:bg-muted"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleOption(option._id)}
-                      className="rounded border-input"
-                    />
-                    <span className="text-lg">{option.emoji ?? "📋"}</span>
-                    <div>
-                      <span className="font-medium">{option.name}</span>
-                      {option.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-1">
-                          {option.description}
-                        </p>
-                      )}
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
-            <p className="mt-4 text-sm text-muted-foreground">
-              After saving, use <code className="rounded bg-muted px-1">/panel refresh</code> with
-              the message ID to update the panel in Discord.
-            </p>
+            {options.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                No enabled ticket options available.{" "}
+                <Link href={`/dashboard/${guildId}/settings/options/new`} className="underline">
+                  Create one first
+                </Link>
+              </p>
+            ) : (
+              <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                {options.map((option) => {
+                  const isSelected = form.selectedOptionIds.includes(option._id);
+                  return (
+                    <label
+                      key={option._id}
+                      className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
+                        isSelected ? "border-primary bg-primary/5" : "hover:bg-muted"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleOption(option._id)}
+                        className="rounded border-input"
+                      />
+                      <span className="text-lg">{option.emoji ?? "📋"}</span>
+                      <div>
+                        <span className="font-medium">{option.name}</span>
+                        {option.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-1">
+                            {option.description}
+                          </p>
+                        )}
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

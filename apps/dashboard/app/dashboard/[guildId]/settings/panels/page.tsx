@@ -7,7 +7,8 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LayoutPanelLeft, Edit, Trash2, Hash, Plus } from "lucide-react";
+import { LayoutPanelLeft, Edit, Trash2, Hash, Plus, MessageSquare } from "lucide-react";
+import { DisplayChannel } from "@/components/discord";
 import type { Id } from "@discord-ticket/convex/convex/_generated/dataModel";
 
 export default function PanelsPage() {
@@ -15,23 +16,23 @@ export default function PanelsPage() {
   const guildId = params.guildId as string;
 
   const panels = useQuery(api.ticketPanels.listByGuild, { guildId });
+  const panelMessages = useQuery(api.ticketPanels.listMessagesByGuild, { guildId });
   const options = useQuery(api.ticketOptions.listByGuild, { guildId });
-  const channels = useQuery(api.discord.listChannels, { guildId });
   const removePanel = useMutation(api.ticketPanels.remove);
 
-  if (panels === undefined || options === undefined) {
+  if (panels === undefined || options === undefined || panelMessages === undefined) {
     return <div className="animate-pulse">Loading...</div>;
   }
 
   const handleDelete = async (id: Id<"ticketPanels">) => {
-    if (confirm("Are you sure you want to delete this panel? The message in Discord will remain but won't work.")) {
+    if (confirm("Are you sure you want to delete this panel? All posted messages will stop working.")) {
       await removePanel({ id });
     }
   };
 
-  const getChannelName = (channelId: string) => {
-    const channel = channels?.find((c) => c.channelId === channelId);
-    return channel?.name ?? "Unknown channel";
+  // Count messages per panel
+  const getMessageCount = (panelId: Id<"ticketPanels">) => {
+    return panelMessages.filter((pm) => pm.panelId === panelId).length;
   };
 
   return (
@@ -39,7 +40,7 @@ export default function PanelsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Ticket Panels</h2>
-          <p className="text-muted-foreground">Manage ticket panel messages</p>
+          <p className="text-muted-foreground">Manage ticket panel configurations</p>
         </div>
         <Button asChild>
           <Link href={`/dashboard/${guildId}/settings/panels/new`}>
@@ -56,7 +57,7 @@ export default function PanelsPage() {
             Panels ({panels.length})
           </CardTitle>
           <CardDescription>
-            Panels let users create tickets by clicking buttons or selecting from a dropdown.
+            Panels are reusable configurations that can be posted to multiple channels.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -75,6 +76,7 @@ export default function PanelsPage() {
             <div className="space-y-3">
               {panels.map((panel) => {
                 const panelOptions = options.filter((o) => panel.optionIds.includes(o._id));
+                const messageCount = getMessageCount(panel._id);
 
                 return (
                   <div
@@ -83,20 +85,18 @@ export default function PanelsPage() {
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">
-                          {panel.embed.title ?? "Untitled Panel"}
-                        </span>
+                        <span className="font-medium">{panel.name}</span>
                         <Badge variant="outline">{panel.style}</Badge>
+                        <Badge variant="secondary" className="gap-1">
+                          <MessageSquare className="h-3 w-3" />
+                          {messageCount} posted
+                        </Badge>
                       </div>
-                      {panel.embed.description && (
+                      {panel.embed.title && (
                         <p className="text-sm text-muted-foreground line-clamp-1">
-                          {panel.embed.description}
+                          {panel.embed.title}
                         </p>
                       )}
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Hash className="h-3 w-3" />
-                        <span>{getChannelName(panel.channelId)}</span>
-                      </div>
                       <div className="flex flex-wrap gap-1 pt-1">
                         {panelOptions.map((opt) => (
                           <Badge key={opt._id} variant="secondary" className="text-xs">
@@ -129,17 +129,20 @@ export default function PanelsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Posting & Refreshing Panels</CardTitle>
+          <CardTitle>Posting Panels</CardTitle>
           <CardDescription>
-            After creating or editing a panel here, use these Discord commands:
+            After creating a panel, use Discord commands to post it to channels.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           <p className="text-sm">
-            <code className="rounded bg-muted px-1">/panel post</code> - Post a new panel message to Discord
+            <code className="rounded bg-muted px-1">/panel post</code> - Post a panel to a channel
           </p>
           <p className="text-sm">
-            <code className="rounded bg-muted px-1">/panel refresh</code> - Update buttons/dropdown on an existing panel message
+            <code className="rounded bg-muted px-1">/panel refresh</code> - Update all posted messages for a panel
+          </p>
+          <p className="text-sm text-muted-foreground mt-4">
+            When you edit a panel here, use <code className="rounded bg-muted px-1">/panel refresh</code> to update all posted messages.
           </p>
         </CardContent>
       </Card>

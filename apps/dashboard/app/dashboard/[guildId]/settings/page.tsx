@@ -21,7 +21,6 @@ export default function SettingsPage() {
   const settings = useQuery(api.serverSettings.getByGuildId, { guildId });
   const options = useQuery(api.ticketOptions.listByGuild, { guildId });
   const panels = useQuery(api.ticketPanels.listByGuild, { guildId });
-  const channels = useQuery(api.discord.listChannels, { guildId });
 
   const upsertSettings = useMutation(api.serverSettings.upsert);
   const addToBlacklist = useMutation(api.serverSettings.addToBlacklist);
@@ -72,12 +71,6 @@ export default function SettingsPage() {
       </Card>
     );
   }
-
-  // Get channel name for panels
-  const getChannelName = (channelId: string) => {
-    const channel = channels?.find((c) => c.channelId === channelId);
-    return channel?.name ?? "Unknown";
-  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -318,14 +311,12 @@ export default function SettingsPage() {
                     className="flex items-center justify-between rounded-lg border p-3"
                   >
                     <div>
-                      <span className="font-medium">{panel.embed.title ?? "Untitled Panel"}</span>
+                      <span className="font-medium">{panel.name}</span>
                       <p className="text-xs text-muted-foreground">
                         {panel.style} • {panel.optionIds.length} option(s)
                       </p>
                     </div>
-                    <Badge variant="outline">
-                      #{getChannelName(panel.channelId)}
-                    </Badge>
+                    <Badge variant="outline">{panel.style}</Badge>
                   </div>
                 ))}
               </div>
