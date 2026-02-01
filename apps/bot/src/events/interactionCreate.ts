@@ -495,7 +495,7 @@ async function handlePanelCommand(
             type: ComponentType.Button,
             style: ButtonStyle.Primary,
             label: option.name,
-            custom_id: `panel:option:${option._id}`,
+            custom_id: `ticket_create:${option._id}`,
             emoji: option.emoji ? { name: option.emoji } : undefined,
           };
           currentRow.push(button);
@@ -515,7 +515,7 @@ async function handlePanelCommand(
         // Create dropdown
         const selectMenu: APIStringSelectComponent = {
           type: ComponentType.StringSelect,
-          custom_id: `panel:select:${interaction.guild_id}`,
+          custom_id: `ticket_create_select`,
           placeholder: "Select a ticket type...",
           options: options.slice(0, 25).map((option) => ({
             label: option.name,
@@ -536,10 +536,10 @@ async function handlePanelCommand(
         },
       }) as { id: string };
 
-      // Save panel to database
+      // Save panel configuration to database
       const panelId = await convex.mutation(api.ticketPanels.create, {
         guildId: interaction.guild_id,
-        channelId: interaction.channel.id,
+        name: title ?? `Panel ${new Date().toISOString().split('T')[0]}`,
         embed: {
           title: embed.title,
           description: embed.description,
@@ -549,9 +549,11 @@ async function handlePanelCommand(
         optionIds: options.map((o) => o._id),
       });
 
-      // Set the message ID
-      await convex.mutation(api.ticketPanels.setMessageId, {
-        id: panelId,
+      // Save the panel message reference
+      await convex.mutation(api.ticketPanels.addMessage, {
+        panelId,
+        guildId: interaction.guild_id,
+        channelId: interaction.channel.id,
         messageId: message.id,
       });
 
@@ -565,12 +567,12 @@ async function handlePanelCommand(
     case "delete": {
       const messageId = subcommand.options.get("message_id") as string;
 
-      // Find and delete the panel
-      const panel = await convex.query(api.ticketPanels.getByMessageId, { messageId });
+      // Find the panel message reference
+      const panelMessage = await convex.query(api.ticketPanels.getPanelMessage, { messageId });
 
-      if (!panel) {
+      if (!panelMessage) {
         await api_.interactions.reply(interaction.id, interaction.token, {
-          content: "❌ Panel not found.",
+          content: "❌ Panel message not found.",
           flags: MessageFlags.Ephemeral,
         });
         return;
@@ -578,16 +580,16 @@ async function handlePanelCommand(
 
       // Delete the Discord message
       try {
-        await rest.delete(Routes.channelMessage(panel.channelId, messageId));
+        await rest.delete(Routes.channelMessage(panelMessage.channelId, messageId));
       } catch {
         // Message might already be deleted
       }
 
-      // Delete from database
-      await convex.mutation(api.ticketPanels.remove, { id: panel._id });
+      // Remove the panel message reference (keeps the panel config for reuse)
+      await convex.mutation(api.ticketPanels.removeMessage, { messageId });
 
       await api_.interactions.reply(interaction.id, interaction.token, {
-        content: "✅ Panel deleted.",
+        content: "✅ Panel message removed.",
         flags: MessageFlags.Ephemeral,
       });
       break;
@@ -596,20 +598,41 @@ async function handlePanelCommand(
     case "refresh": {
       const messageId = subcommand.options.get("message_id") as string;
 
-      const panel = await convex.query(api.ticketPanels.getByMessageId, { messageId });
+      // Find the panel message reference
+      const panelMessage = await convex.query(api.ticketPanels.getPanelMessage, { messageId });
 
-      if (!panel) {
+      if (!panelMessage) {
         await api_.interactions.reply(interaction.id, interaction.token, {
-          content: "❌ Panel not found.",
+          content: "❌ Panel message not found.",
           flags: MessageFlags.Ephemeral,
         });
         return;
       }
 
-      // Get current ticket options
-      const options = await convex.query(api.ticketOptions.listEnabledByGuild, {
+      // Get the panel configuration
+      const panel = await convex.query(api.ticketPanels.get, { id: panelMessage.panelId });
+
+      if (!panel) {
+        await api_.interactions.reply(interaction.id, interaction.token, {
+          content: "❌ Panel configuration not found.",
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+
+      // Get options that are both on this panel AND enabled
+      const allOptions = await convex.query(api.ticketOptions.listByGuild, {
         guildId: interaction.guild_id,
       });
+      const options = allOptions
+        .filter((o) => panel.optionIds.includes(o._id as Id<"ticketOptions">) && o.enabled)
+        .sort((a, b) => a.order - b.order);
+
+      // Rebuild embed
+      const embed: APIEmbed = {};
+      if (panel.embed.title) embed.title = panel.embed.title;
+      if (panel.embed.description) embed.description = panel.embed.description;
+      if (panel.embed.color) embed.color = panel.embed.color;
 
       // Rebuild components
       let components: APIActionRowComponent<APIButtonComponent | APIStringSelectComponent>[];
@@ -623,7 +646,7 @@ async function handlePanelCommand(
             type: ComponentType.Button,
             style: ButtonStyle.Primary,
             label: option.name,
-            custom_id: `panel:option:${option._id}`,
+            custom_id: `ticket_create:${option._id}`,
             emoji: option.emoji ? { name: option.emoji } : undefined,
           };
           currentRow.push(button);
@@ -642,7 +665,7 @@ async function handlePanelCommand(
       } else {
         const selectMenu: APIStringSelectComponent = {
           type: ComponentType.StringSelect,
-          custom_id: `panel:select:${interaction.guild_id}`,
+          custom_id: `ticket_create_select`,
           placeholder: panel.dropdownPlaceholder ?? "Select a ticket type...",
           options: options.slice(0, 25).map((option) => ({
             label: option.name,
@@ -656,14 +679,8 @@ async function handlePanelCommand(
       }
 
       // Update the message
-      await rest.patch(Routes.channelMessage(panel.channelId, messageId), {
-        body: { components },
-      });
-
-      // Update panel option IDs
-      await convex.mutation(api.ticketPanels.update, {
-        id: panel._id,
-        optionIds: options.map((o) => o._id),
+      await rest.patch(Routes.channelMessage(panelMessage.channelId, messageId), {
+        body: { embeds: [embed], components },
       });
 
       await api_.interactions.reply(interaction.id, interaction.token, {

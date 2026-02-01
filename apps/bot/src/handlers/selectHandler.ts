@@ -22,14 +22,14 @@ export async function handleSelectMenuInteraction(
   const user = interaction.user ?? interaction.member?.user;
   if (!user || !interaction.guild_id) return;
 
-  // Handle panel dropdown
-  if (customId.startsWith("panel:select:")) {
-    await handlePanelSelect(interaction, api_, user);
+  // Handle ticket creation dropdown
+  if (customId === "ticket_create_select") {
+    await handleTicketCreateSelect(interaction, api_, user);
     return;
   }
 }
 
-async function handlePanelSelect(
+async function handleTicketCreateSelect(
   interaction: APIMessageComponentSelectMenuInteraction,
   api_: API,
   user: APIUser

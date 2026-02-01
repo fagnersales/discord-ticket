@@ -23,9 +23,9 @@ export async function handleButtonInteraction(
   const user = interaction.user ?? interaction.member?.user;
   if (!user || !interaction.guild_id) return;
 
-  // Handle panel button (create ticket)
-  if (customId.startsWith("panel:option:")) {
-    await handlePanelButton(interaction, api_, customId, user);
+  // Handle ticket creation button
+  if (customId.startsWith("ticket_create:")) {
+    await handleTicketCreateButton(interaction, api_, customId, user);
     return;
   }
 
@@ -36,13 +36,13 @@ export async function handleButtonInteraction(
   }
 }
 
-async function handlePanelButton(
+async function handleTicketCreateButton(
   interaction: APIMessageComponentButtonInteraction,
   api_: API,
   customId: string,
   user: APIUser
 ) {
-  const optionId = customId.replace("panel:option:", "") as Id<"ticketOptions">;
+  const optionId = customId.replace("ticket_create:", "") as Id<"ticketOptions">;
 
   // Fetch the ticket option
   const option = await convex.query(api.ticketOptions.get, { id: optionId });
