@@ -19,9 +19,10 @@ bun run dev
 cd apps/bot && bun run dev
 cd apps/dashboard && bun run dev
 
-# Build & type-check
+# Build, type-check, lint
 bun run build
 bun run typecheck
+bun run lint
 ```
 
 ## Architecture
