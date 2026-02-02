@@ -5,3 +5,6 @@ node_modules/
 dist/
 packages/convex/convex/_generated/
 .turbo/
+next-env.d.ts
+tsconfig.tsbuildinfo
+.playwright-mcp/
