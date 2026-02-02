@@ -224,14 +224,28 @@ async function sendInitialMessage(
       fields: [],
     };
 
-    // Add modal responses to embed if present
-    if (modalResponses && modalResponses.length > 0) {
+    // Add modal responses to default embed only if showModalResponses is disabled
+    if (modalResponses && modalResponses.length > 0 && !option.showModalResponses) {
       embed.fields = modalResponses.map((r) => ({
         name: r.label,
         value: r.value || "*No response*",
         inline: false,
       }));
     }
+  }
+
+  // Build modal responses embed if enabled
+  let modalResponsesEmbed: APIEmbed | undefined;
+  if (option.showModalResponses && modalResponses && modalResponses.length > 0) {
+    modalResponsesEmbed = {
+      title: "Form Responses",
+      color: panelColor ?? 0x5865f2,
+      fields: modalResponses.map((r) => ({
+        name: r.label,
+        value: r.value || "*No response*",
+        inline: false,
+      })),
+    };
   }
 
   // Build action row with close button
@@ -248,10 +262,15 @@ async function sendInitialMessage(
     ],
   };
 
+  // Build embeds array
+  const embeds: APIEmbed[] = [];
+  if (embed) embeds.push(embed);
+  if (modalResponsesEmbed) embeds.push(modalResponsesEmbed);
+
   const message = (await rest.post(Routes.channelMessages(channelId), {
     body: {
       content,
-      embeds: embed ? [embed] : undefined,
+      embeds: embeds.length > 0 ? embeds : undefined,
       components: [actionRow],
     },
   })) as APIMessage;

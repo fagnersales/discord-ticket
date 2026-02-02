@@ -70,6 +70,7 @@ export const create = mutation({
     useModal: v.boolean(),
     modalTitle: v.optional(v.string()),
     modalFields: v.optional(v.array(modalFieldValidator)),
+    showModalResponses: v.optional(v.boolean()),
     initialMessage: v.optional(v.object({
       content: v.optional(v.string()),
       embed: v.optional(embedValidator),
@@ -94,6 +95,7 @@ export const create = mutation({
       useModal: args.useModal,
       modalTitle: args.modalTitle,
       modalFields: args.modalFields,
+      showModalResponses: args.showModalResponses,
       initialMessage: args.initialMessage,
       order: maxOrder + 1,
       enabled: true,
@@ -113,6 +115,7 @@ export const update = mutation({
     useModal: v.optional(v.boolean()),
     modalTitle: v.optional(v.string()),
     modalFields: v.optional(v.array(modalFieldValidator)),
+    showModalResponses: v.optional(v.boolean()),
     initialMessage: v.optional(v.object({
       content: v.optional(v.string()),
       embed: v.optional(embedValidator),

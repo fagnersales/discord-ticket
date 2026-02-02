@@ -81,6 +81,7 @@ export default defineSchema({
     useModal: v.boolean(),
     modalTitle: v.optional(v.string()),
     modalFields: v.optional(v.array(modalField)),
+    showModalResponses: v.optional(v.boolean()), // Show modal responses in a separate embed
 
     // Initial message sent when ticket is created
     initialMessage: v.optional(v.object({

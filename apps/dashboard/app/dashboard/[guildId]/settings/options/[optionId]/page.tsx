@@ -41,6 +41,7 @@ export default function EditOptionPage() {
       style: "short" | "paragraph";
       required: boolean;
     }>,
+    showModalResponses: false,
     initialMessageContent: "",
     initialMessageTitle: "",
     initialMessageDescription: "",
@@ -67,6 +68,7 @@ export default function EditOptionPage() {
             style: f.style,
             required: f.required,
           })) ?? [],
+        showModalResponses: option.showModalResponses ?? false,
         initialMessageContent: option.initialMessage?.content ?? "",
         initialMessageTitle: option.initialMessage?.embed?.title ?? "",
         initialMessageDescription: option.initialMessage?.embed?.description ?? "",
@@ -110,6 +112,7 @@ export default function EditOptionPage() {
               required: f.required,
             }))
           : undefined,
+        showModalResponses: form.useModal ? form.showModalResponses : undefined,
         initialMessage:
           form.initialMessageContent || form.initialMessageTitle || form.initialMessageDescription
             ? {
@@ -355,6 +358,19 @@ export default function EditOptionPage() {
                   placeholder="Create Support Ticket"
                 />
               </div>
+
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={form.showModalResponses}
+                  onChange={(e) => setForm({ ...form, showModalResponses: e.target.checked })}
+                  className="rounded border-input"
+                />
+                <span className="text-sm">Show modal responses in ticket channel</span>
+              </label>
+              <p className="text-xs text-muted-foreground">
+                When enabled, user responses will be shown in a separate embed when the ticket is created
+              </p>
 
               <Separator />
 
