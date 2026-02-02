@@ -33,7 +33,10 @@ async function handleTicketModal(
   customId: string,
   user: APIUser
 ) {
-  const optionId = customId.replace("modal:ticket:", "") as Id<"ticketOptions">;
+  // Parse custom_id: modal:ticket:{optionId} or modal:ticket:{optionId}:{panelMessageId}
+  const parts = customId.replace("modal:ticket:", "").split(":");
+  const optionId = parts[0] as Id<"ticketOptions">;
+  const panelMessageId = parts[1];
 
   // Fetch the ticket option
   const option = await convex.query(api.ticketOptions.get, { id: optionId });
@@ -93,6 +96,12 @@ async function handleTicketModal(
   // Get guild info
   const guild = (await rest.get(Routes.guild(interaction.guild_id!))) as APIGuild;
 
+  // Get panel color if available
+  const panel = panelMessageId
+    ? await convex.query(api.ticketPanels.getByMessageId, { messageId: panelMessageId })
+    : null;
+  const panelColor = panel?.embed.color;
+
   // Create the ticket
   const result = await createTicket({
     guildId: interaction.guild_id!,
@@ -101,6 +110,7 @@ async function handleTicketModal(
     option,
     serverSettings: settings,
     modalResponses,
+    panelColor,
   });
 
   if (result.success) {

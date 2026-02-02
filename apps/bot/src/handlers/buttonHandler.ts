@@ -77,10 +77,22 @@ async function handleTicketCreateButton(
     return;
   }
 
+  // Get the panel to use its color
+  const panelMessageId = interaction.message?.id;
+  const panel = panelMessageId
+    ? await convex.query(api.ticketPanels.getByMessageId, { messageId: panelMessageId })
+    : null;
+  const panelColor = panel?.embed.color;
+
   // If option requires modal, show it
   if (option.useModal && option.modalFields && option.modalFields.length > 0) {
+    // Include panel message ID in custom_id so modal handler can get panel color
+    const modalCustomId = panelMessageId
+      ? `modal:ticket:${optionId}:${panelMessageId}`
+      : `modal:ticket:${optionId}`;
+
     await api_.interactions.createModal(interaction.id, interaction.token, {
-      custom_id: `modal:ticket:${optionId}`,
+      custom_id: modalCustomId,
       title: option.modalTitle ?? `Create ${option.name} Ticket`,
       components: option.modalFields.slice(0, 5).map((field) => ({
         type: ComponentType.ActionRow,
@@ -114,6 +126,7 @@ async function handleTicketCreateButton(
     user,
     option,
     serverSettings: settings,
+    panelColor,
   });
 
   if (result.success) {

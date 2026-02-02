@@ -22,6 +22,7 @@ export interface TicketCreationContext {
   option: Doc<"ticketOptions">;
   serverSettings: Doc<"serverSettings">;
   modalResponses?: Array<{ fieldId: string; label: string; value: string }>;
+  panelColor?: number;
 }
 
 export interface TicketCreationResult {
@@ -141,7 +142,8 @@ export async function createTicket(
       option,
       placeholderContext,
       ticketId,
-      modalResponses
+      modalResponses,
+      context.panelColor
     );
 
     // Record the initial message
@@ -176,7 +178,8 @@ async function sendInitialMessage(
   option: Doc<"ticketOptions">,
   context: PlaceholderContext,
   ticketId: Id<"tickets">,
-  modalResponses?: Array<{ fieldId: string; label: string; value: string }>
+  modalResponses?: Array<{ fieldId: string; label: string; value: string }>,
+  panelColor?: number
 ): Promise<APIMessage | null> {
   const initialMsg = option.initialMessage;
 
@@ -217,7 +220,7 @@ async function sendInitialMessage(
     embed = {
       title: `Ticket #${context.ticket.number.toString().padStart(4, "0")}`,
       description: `Welcome ${context.user.mention}!\n\nA staff member will assist you shortly. Please describe your issue in detail.`,
-      color: 0x5865f2, // Discord blurple
+      color: panelColor ?? 0x5865f2, // Use panel color or Discord blurple as fallback
       fields: [],
     };
 
