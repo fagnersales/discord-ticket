@@ -159,10 +159,10 @@ export function Sidebar() {
             href={BOT_INVITE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="group flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2.5 text-sm font-medium text-primary transition-all duration-200 hover:bg-primary hover:text-primary-foreground"
+            className="group flex items-center justify-center gap-3 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-all duration-200 hover:bg-primary/90 hover:shadow-md"
           >
-            <UserPlus className="h-4 w-4" />
-            <span>Invite Bot</span>
+            <UserPlus className="h-5 w-5" />
+            <span>Invite to Server</span>
           </a>
         )}
         <NavItem
