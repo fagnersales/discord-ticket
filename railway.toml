@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "bun install && cd packages/convex && bunx convex codegen"
+buildCommand = "bun install && bun run --filter=@discord-ticket/convex build"
 
 [deploy]
 startCommand = "bun run --filter=@discord-ticket/bot start"
