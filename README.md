@@ -87,10 +87,11 @@ CONVEX_URL=your_convex_url
 
 **apps/dashboard/.env.local**
 ```env
-CONVEX_URL=your_convex_url
 NEXT_PUBLIC_CONVEX_URL=your_convex_url
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
 CLERK_SECRET_KEY=your_clerk_secret_key
+CLERK_JWT_ISSUER_DOMAIN=your_clerk_jwt_issuer_domain
+NEXT_PUBLIC_DISCORD_APPLICATION_ID=your_discord_application_id
 ```
 
 ### 6. Run Development Servers
@@ -145,6 +146,7 @@ The `railway.toml` in the repo root handles build and start commands automatical
 | `CLERK_SECRET_KEY` | Clerk secret key |
 | `CLERK_JWT_ISSUER_DOMAIN` | Clerk JWT issuer domain |
 | `NEXT_PUBLIC_CONVEX_URL` | Your Convex production URL |
+| `NEXT_PUBLIC_DISCORD_APPLICATION_ID` | Discord application ID (for bot invite button) |
 | `CONVEX_DEPLOY_KEY` | Deploy key from Convex dashboard (optional, for auto-deploy) |
 
 5. (Optional) To auto-deploy Convex with the dashboard, set the **Build Command** to:

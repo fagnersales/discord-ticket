@@ -1,6 +1,6 @@
 "use client";
 
-import { Ticket, Settings, LayoutDashboard, ListChecks, LayoutPanelLeft, ChevronRight, Server, HelpCircle } from "lucide-react";
+import { Ticket, Settings, LayoutDashboard, ListChecks, LayoutPanelLeft, ChevronRight, Server, HelpCircle, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+
+const DISCORD_APPLICATION_ID = process.env.NEXT_PUBLIC_DISCORD_APPLICATION_ID;
+const BOT_INVITE_URL = DISCORD_APPLICATION_ID
+  ? `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_APPLICATION_ID}&permissions=8&scope=bot%20applications.commands`
+  : null;
 
 interface NavItemProps {
   href: string;
@@ -148,9 +153,20 @@ export function Sidebar() {
       </ScrollArea>
 
       {/* Footer */}
-      <div className="border-t border-sidebar-border p-3">
+      <div className="border-t border-sidebar-border p-3 space-y-1">
+        {BOT_INVITE_URL && (
+          <a
+            href={BOT_INVITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2.5 text-sm font-medium text-primary transition-all duration-200 hover:bg-primary hover:text-primary-foreground"
+          >
+            <UserPlus className="h-4 w-4" />
+            <span>Invite Bot</span>
+          </a>
+        )}
         <NavItem
-          href="https://github.com/your-repo/discord-ticket"
+          href="https://github.com/fagnersales/discord-ticket"
           icon={<HelpCircle className="h-4 w-4" />}
           label="Help & Support"
         />

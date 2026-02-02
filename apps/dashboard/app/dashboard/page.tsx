@@ -2,10 +2,15 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@discord-ticket/convex/convex/_generated/api";
-import { Server, AlertCircle, Loader2, Users, ChevronRight } from "lucide-react";
+import { Server, AlertCircle, Loader2, Users, ChevronRight, Plus } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
+
+const DISCORD_APPLICATION_ID = process.env.NEXT_PUBLIC_DISCORD_APPLICATION_ID;
+const BOT_INVITE_URL = DISCORD_APPLICATION_ID
+  ? `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_APPLICATION_ID}&permissions=8&scope=bot%20applications.commands`
+  : null;
 
 type UserGuild = {
   id: string;
@@ -170,6 +175,27 @@ export default function DashboardPage() {
             </Card>
           </Link>
         ))}
+
+        {/* Invite bot card */}
+        {BOT_INVITE_URL && (
+          <a
+            href={BOT_INVITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="animate-slide-up"
+            style={{ animationDelay: `${matchedServers.length * 50}ms` }}
+          >
+            <Card
+              variant="interactive"
+              className="group flex h-full min-h-[88px] items-center justify-center border-dashed p-5"
+            >
+              <div className="flex items-center gap-3 text-muted-foreground transition-colors group-hover:text-primary">
+                <Plus className="h-5 w-5" />
+                <span className="font-medium">Add to Server</span>
+              </div>
+            </Card>
+          </a>
+        )}
       </div>
     </div>
   );
