@@ -5,25 +5,33 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@discord-ticket/convex/convex/_generated/api";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChannelSelect } from "@/components/discord";
 import {
   LayoutPanelLeft,
-  Edit,
-  Trash2,
   Plus,
   MessageSquare,
-  Terminal,
-  Palette,
   Send,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Grid3X3,
+  ChevronDown,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Id } from "@discord-ticket/convex/convex/_generated/dataModel";
 
 function discordColorToHex(color: number | string | undefined): string {
-  if (!color) return "#8b5cf6"; // Default purple
+  if (!color) return "#8b5cf6";
   if (typeof color === "string") return color;
   return `#${color.toString(16).padStart(6, "0")}`;
 }
@@ -60,10 +68,13 @@ export default function PanelsPage() {
   if (panels === undefined || options === undefined || panelMessages === undefined) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-8 w-48 rounded-lg bg-muted" />
-        <div className="space-y-3">
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="h-32 rounded-xl bg-muted" />
+        <div className="flex items-center justify-between">
+          <div className="h-8 w-48 rounded-lg bg-muted" />
+          <div className="h-10 w-32 rounded-lg bg-muted" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-56 rounded-xl bg-muted" />
           ))}
         </div>
       </div>
@@ -98,7 +109,7 @@ export default function PanelsPage() {
         </Button>
       </div>
 
-      {/* Panels list */}
+      {/* Panels grid */}
       {panels.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
@@ -118,147 +129,158 @@ export default function PanelsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {panels.map((panel, index) => {
             const panelOptions = options.filter((o) => panel.optionIds.includes(o._id));
             const messageCount = getMessageCount(panel._id);
+            const accentColor = discordColorToHex(panel.embed.color);
 
             return (
               <Card
                 key={panel._id}
-                className="overflow-hidden animate-slide-up"
-                style={{ animationDelay: `${index * 30}ms` }}
+                className="group relative overflow-hidden transition-all hover:shadow-lg animate-slide-up"
+                style={{ animationDelay: `${index * 50}ms` }}
               >
-                <div className="flex items-stretch">
-                  {/* Color indicator */}
-                  <div
-                    className="w-1"
-                    style={{ backgroundColor: discordColorToHex(panel.embed.color) }}
-                  />
+                {/* Accent gradient top */}
+                <div
+                  className="h-1.5"
+                  style={{
+                    background: `linear-gradient(90deg, ${accentColor}, ${accentColor}88)`,
+                  }}
+                />
 
-                  <div className="flex flex-1 items-center justify-between p-4">
-                    <div className="flex items-center gap-4">
-                      {/* Icon */}
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted">
-                        <Palette
-                          className="h-5 w-5"
-                          style={{ color: discordColorToHex(panel.embed.color) }}
-                        />
-                      </div>
-
-                      {/* Info */}
-                      <div className="space-y-1.5">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-semibold">{panel.name}</span>
-                          <Badge variant="outline" size="sm">
-                            {panel.style === "buttons" ? "Buttons" : "Dropdown"}
-                          </Badge>
-                          <Badge variant="secondary" size="sm" className="gap-1">
-                            <MessageSquare className="h-3 w-3" />
-                            {messageCount} posted
-                          </Badge>
-                        </div>
-                        {panel.embed.title && (
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {panel.embed.title}
-                          </p>
-                        )}
-                        <div className="flex flex-wrap gap-1.5">
-                          {panelOptions.map((opt) => (
-                            <Badge key={opt._id} variant="secondary" size="sm">
-                              {opt.emoji} {opt.name}
-                            </Badge>
-                          ))}
-                          {panelOptions.length === 0 && (
-                            <span className="text-xs text-muted-foreground">No options selected</span>
-                          )}
-                        </div>
-                      </div>
+                <CardContent className="p-5">
+                  {/* Header with menu */}
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <h3 className="font-semibold leading-none">{panel.name}</h3>
+                      {panel.embed.title && (
+                        <p className="text-sm text-muted-foreground line-clamp-1">
+                          {panel.embed.title}
+                        </p>
+                      )}
                     </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2">
-                      <Popover
-                        open={openPopover === panel._id}
-                        onOpenChange={(open) => {
-                          setOpenPopover(open ? panel._id : null);
-                          if (!open) setPostChannelId(undefined);
-                        }}
-                      >
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" size="icon-sm">
-                            <Send className="h-4 w-4" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent align="end" className="w-72">
-                          <div className="space-y-3">
-                            <p className="text-sm font-medium">Post panel to channel</p>
-                            <ChannelSelect
-                              guildId={guildId}
-                              mode="single"
-                              channelTypes={["text"]}
-                              value={postChannelId}
-                              onValueChange={setPostChannelId}
-                              placeholder="Select channel..."
-                            />
-                            <Button
-                              size="sm"
-                              className="w-full"
-                              disabled={!postChannelId || postingPanelId === panel._id}
-                              onClick={() => handlePost(panel._id)}
-                            >
-                              <Send className="mr-2 h-4 w-4" />
-                              {postingPanelId === panel._id ? "Posting..." : "Post"}
-                            </Button>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                      <Button variant="outline" size="icon-sm" asChild>
-                        <Link href={`/dashboard/${guildId}/settings/panels/${panel._id}`}>
-                          <Edit className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon-sm"
-                        onClick={() => handleDelete(panel._id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/dashboard/${guildId}/settings/panels/${panel._id}`}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => handleDelete(panel._id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                </div>
+
+                  {/* Stats row */}
+                  <div className="mt-4 flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <MessageSquare className="h-4 w-4" />
+                      <span>{messageCount} posted</span>
+                    </div>
+                    <Badge variant="outline" size="sm">
+                      {panel.style === "buttons" ? (
+                        <>
+                          <Grid3X3 className="mr-1 h-3 w-3" />
+                          Buttons
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="mr-1 h-3 w-3" />
+                          Dropdown
+                        </>
+                      )}
+                    </Badge>
+                  </div>
+
+                  {/* Options preview */}
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {panelOptions.slice(0, 4).map((opt) => (
+                      <span
+                        key={opt._id}
+                        className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs"
+                      >
+                        {opt.emoji} {opt.name}
+                      </span>
+                    ))}
+                    {panelOptions.length > 4 && (
+                      <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
+                        +{panelOptions.length - 4} more
+                      </span>
+                    )}
+                    {panelOptions.length === 0 && (
+                      <span className="text-xs text-muted-foreground">No options selected</span>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="mt-5 flex gap-2">
+                    <Popover
+                      open={openPopover === panel._id}
+                      onOpenChange={(open) => {
+                        setOpenPopover(open ? panel._id : null);
+                        if (!open) setPostChannelId(undefined);
+                      }}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button variant="default" size="sm" className="flex-1">
+                          <Send className="mr-2 h-4 w-4" />
+                          Send
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-72">
+                        <div className="space-y-3">
+                          <p className="text-sm font-medium">Post panel to channel</p>
+                          <ChannelSelect
+                            guildId={guildId}
+                            mode="single"
+                            channelTypes={["text"]}
+                            value={postChannelId}
+                            onValueChange={setPostChannelId}
+                            placeholder="Select channel..."
+                          />
+                          <Button
+                            size="sm"
+                            className="w-full"
+                            disabled={!postChannelId || postingPanelId === panel._id}
+                            onClick={() => handlePost(panel._id)}
+                          >
+                            <Send className="mr-2 h-4 w-4" />
+                            {postingPanelId === panel._id ? "Posting..." : "Post"}
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/dashboard/${guildId}/settings/panels/${panel._id}`}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
               </Card>
             );
           })}
         </div>
       )}
-
-      {/* Help card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Terminal className="h-5 w-5 text-muted-foreground" />
-            Discord Commands
-          </CardTitle>
-          <CardDescription>
-            Use these commands in Discord to post panels
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
-            <code className="text-sm font-medium text-primary">/panel post</code>
-            <span className="text-sm text-muted-foreground">Post a panel to a channel</span>
-          </div>
-          <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
-            <code className="text-sm font-medium text-primary">/panel refresh</code>
-            <span className="text-sm text-muted-foreground">Update all posted panel messages</span>
-          </div>
-          <p className="text-xs text-muted-foreground pt-2">
-            When you edit a panel, use /panel refresh to update existing messages.
-          </p>
-        </CardContent>
-      </Card>
     </div>
   );
 }
