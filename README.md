@@ -107,6 +107,52 @@ cd packages/convex && bunx convex dev
 
 The dashboard will be available at http://localhost:3000
 
+## Deployment
+
+### Convex Environment Variables
+
+In the [Convex Dashboard](https://dashboard.convex.dev), add these environment variables to your **production** deployment:
+
+- `CLERK_JWT_ISSUER_DOMAIN` - Your Clerk JWT issuer domain (e.g., `https://your-app.clerk.accounts.dev`)
+- `DISCORD_TOKEN` - Your Discord bot token
+
+### Railway (Bot)
+
+1. Create a new project in [Railway](https://railway.app/)
+2. Connect your GitHub repository
+3. Add these environment variables:
+
+| Variable | Description |
+|----------|-------------|
+| `DISCORD_TOKEN` | Bot token from Discord Developer Portal |
+| `DISCORD_APPLICATION_ID` | Application ID from Discord Developer Portal |
+| `DISCORD_PUBLIC_KEY` | Public key from Discord Developer Portal |
+| `CONVEX_URL` | Your Convex production URL (e.g., `https://your-project.convex.cloud`) |
+| `CONVEX_DEPLOYMENT` | Your Convex deployment (e.g., `prod:your-project`) |
+
+The `railway.toml` in the repo root handles build and start commands automatically.
+
+### Vercel (Dashboard)
+
+1. Create a new project in [Vercel](https://vercel.com/)
+2. Connect your GitHub repository
+3. Set **Root Directory** to `apps/dashboard`
+4. Add these environment variables:
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key |
+| `CLERK_SECRET_KEY` | Clerk secret key |
+| `CLERK_JWT_ISSUER_DOMAIN` | Clerk JWT issuer domain |
+| `NEXT_PUBLIC_CONVEX_URL` | Your Convex production URL |
+| `CONVEX_DEPLOY_KEY` | Deploy key from Convex dashboard (optional, for auto-deploy) |
+
+5. (Optional) To auto-deploy Convex with the dashboard, set the **Build Command** to:
+
+```
+bunx convex deploy --cmd 'bun run build' --cmd-url-env-var-name NEXT_PUBLIC_CONVEX_URL
+```
+
 ## Usage
 
 1. Open the dashboard and sign in with Clerk
