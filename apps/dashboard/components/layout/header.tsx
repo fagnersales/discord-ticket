@@ -3,17 +3,11 @@
 import { UserButton } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "@discord-ticket/convex/convex/_generated/api";
-import { Bell, Search, ChevronRight, Server } from "lucide-react";
+import { Search, ChevronRight, Server } from "lucide-react";
 import { useParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 function Breadcrumb({ items }: { items: { label: string; href?: string }[] }) {
   return (
@@ -151,21 +145,6 @@ export function Header() {
             className="w-64 pl-9 bg-muted/50 border-transparent focus:bg-background focus:border-input"
           />
         </div>
-
-        {/* Notifications */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
-                  3
-                </span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Notifications</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
 
         {/* User */}
         <div className="ml-2 flex items-center gap-3 border-l pl-4">
