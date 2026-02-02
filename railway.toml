@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "bun install && bunx turbo run build --filter=@discord-ticket/convex"
+buildCommand = "bun install"
 
 [deploy]
 startCommand = "cd apps/bot && bun run start"
