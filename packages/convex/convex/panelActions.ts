@@ -306,3 +306,45 @@ export const refreshPanel = action({
     return { updated, removed: failedMessageIds.length };
   },
 });
+
+export const deletePanelMessage = action({
+  args: {
+    id: v.id("panelMessages"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const panelMessage = await ctx.runQuery(api.ticketPanels.getPanelMessageById, { id: args.id });
+
+    if (!panelMessage) {
+      throw new Error("Panel message not found");
+    }
+
+    const botToken = process.env.DISCORD_TOKEN;
+    if (!botToken) {
+      throw new Error("DISCORD_TOKEN not configured in Convex environment");
+    }
+
+    // Delete the message from Discord
+    const response = await fetch(
+      `https://discord.com/api/v10/channels/${panelMessage.channelId}/messages/${panelMessage.messageId}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bot ${botToken}`,
+        },
+      }
+    );
+
+    // 204 = success, 404 = already deleted (both are fine)
+    if (!response.ok && response.status !== 404) {
+      const error = await response.text();
+      console.error("Discord API error:", error);
+      throw new Error(`Failed to delete message: ${response.status}`);
+    }
+
+    // Remove from database
+    await ctx.runMutation(api.ticketPanels.removeMessageById, { id: args.id });
+
+    return null;
+  },
+});

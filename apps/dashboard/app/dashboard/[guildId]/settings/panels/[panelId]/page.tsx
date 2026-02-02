@@ -26,7 +26,7 @@ export default function EditPanelPage() {
   const options = useQuery(api.ticketOptions.listEnabledByGuild, { guildId });
   const panelMessages = useQuery(api.ticketPanels.listMessagesByPanel, { panelId });
   const updatePanel = useMutation(api.ticketPanels.update);
-  const removeMessage = useMutation(api.ticketPanels.removeMessageById);
+  const deleteMessage = useAction(api.panelActions.deletePanelMessage);
 
   const [form, setForm] = useState({
     name: "",
@@ -113,8 +113,13 @@ export default function EditPanelPage() {
   };
 
   const handleRemoveMessage = async (id: Id<"panelMessages">) => {
-    if (confirm("Remove this reference? The message will remain in Discord but won't work anymore.")) {
-      await removeMessage({ id });
+    if (confirm("Delete this panel message from Discord?")) {
+      try {
+        await deleteMessage({ id });
+      } catch (error) {
+        console.error("Failed to delete message:", error);
+        alert("Failed to delete message from Discord.");
+      }
     }
   };
 

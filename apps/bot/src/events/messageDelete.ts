@@ -6,6 +6,15 @@ export async function handleMessageDelete(data: GatewayMessageDeleteDispatchData
   // Ignore DMs
   if (!data.guild_id) return;
 
+  // Check if this is a panel message and remove the reference
+  const panelMessage = await convex.query(api.ticketPanels.getPanelMessage, {
+    messageId: data.id,
+  });
+  if (panelMessage) {
+    await convex.mutation(api.ticketPanels.removeMessageById, { id: panelMessage._id });
+    return;
+  }
+
   // Check if this is a ticket channel
   const ticket = await convex.query(api.tickets.getByChannelId, {
     channelId: data.channel_id,

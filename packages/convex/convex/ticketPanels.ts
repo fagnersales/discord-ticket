@@ -140,6 +140,13 @@ export const getPanelMessage = query({
   },
 });
 
+export const getPanelMessageById = query({
+  args: { id: v.id("panelMessages") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
+
 // Panel message mutations
 export const addMessage = mutation({
   args: {
