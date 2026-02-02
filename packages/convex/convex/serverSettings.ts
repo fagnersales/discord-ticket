@@ -22,6 +22,7 @@ export const upsert = mutation({
     logChannelId: v.optional(v.string()),
     maxOpenTicketsPerUser: v.optional(v.number()),
     ticketCooldownSeconds: v.optional(v.number()),
+    allowUserClose: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -39,6 +40,7 @@ export const upsert = mutation({
         ...(args.logChannelId !== undefined && { logChannelId: args.logChannelId }),
         ...(args.maxOpenTicketsPerUser !== undefined && { maxOpenTicketsPerUser: args.maxOpenTicketsPerUser }),
         ...(args.ticketCooldownSeconds !== undefined && { ticketCooldownSeconds: args.ticketCooldownSeconds }),
+        ...(args.allowUserClose !== undefined && { allowUserClose: args.allowUserClose }),
       });
       return existing._id;
     }
@@ -54,6 +56,7 @@ export const upsert = mutation({
       maxOpenTicketsPerUser: args.maxOpenTicketsPerUser ?? 3,
       ticketCooldownSeconds: args.ticketCooldownSeconds ?? 0,
       blacklistedUserIds: [],
+      allowUserClose: args.allowUserClose ?? false,
       ticketCounter: 0,
     });
   },
@@ -134,5 +137,57 @@ export const isUserBlacklisted = query({
 
     if (!settings) return false;
     return settings.blacklistedUserIds.includes(args.userId);
+  },
+});
+
+export const canUserCloseTicket = query({
+  args: {
+    guildId: v.string(),
+    ticketId: v.id("tickets"),
+    userId: v.string(),
+    userRoleIds: v.array(v.string()),
+  },
+  returns: v.object({
+    allowed: v.boolean(),
+    reason: v.optional(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    const settings = await ctx.db
+      .query("serverSettings")
+      .withIndex("by_guild", (q) => q.eq("guildId", args.guildId))
+      .unique();
+
+    if (!settings) {
+      return { allowed: false, reason: "Server not configured" };
+    }
+
+    // Check if user is staff or admin
+    const isStaff = args.userRoleIds.some(
+      (roleId) =>
+        settings.staffRoleIds.includes(roleId) ||
+        settings.adminRoleIds.includes(roleId)
+    );
+
+    if (isStaff) {
+      return { allowed: true };
+    }
+
+    // Check if user is the ticket creator and allowUserClose is enabled
+    const ticket = await ctx.db.get(args.ticketId);
+    if (!ticket) {
+      return { allowed: false, reason: "Ticket not found" };
+    }
+
+    const isCreator = ticket.creatorId === args.userId;
+
+    if (isCreator && settings.allowUserClose) {
+      return { allowed: true };
+    }
+
+    if (isCreator && !settings.allowUserClose) {
+      return { allowed: false, reason: "Only staff can close tickets" };
+    }
+
+    return { allowed: false, reason: "You don't have permission to close this ticket" };
   },
 });

@@ -157,6 +157,23 @@ async function handleTicketButton(
       return;
     }
 
+    // Check if user has permission to close
+    const userRoleIds = interaction.member?.roles ?? [];
+    const canClose = await convex.query(api.serverSettings.canUserCloseTicket, {
+      guildId: interaction.guild_id!,
+      ticketId: ticketId as Id<"tickets">,
+      userId: user.id,
+      userRoleIds,
+    });
+
+    if (!canClose.allowed) {
+      await api_.interactions.reply(interaction.id, interaction.token, {
+        content: `❌ ${canClose.reason ?? "You don't have permission to close this ticket."}`,
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
     // Close the ticket
     await convex.mutation(api.tickets.close, {
       id: ticketId as Id<"tickets">,

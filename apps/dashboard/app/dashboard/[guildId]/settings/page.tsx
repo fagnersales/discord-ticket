@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -48,6 +49,7 @@ export default function SettingsPage() {
     logChannelId: undefined as string | undefined,
     staffRoleIds: [] as string[],
     adminRoleIds: [] as string[],
+    allowUserClose: false,
   });
 
   const [blacklistUserId, setBlacklistUserId] = useState<string | undefined>(undefined);
@@ -62,6 +64,7 @@ export default function SettingsPage() {
         logChannelId: settings.logChannelId,
         staffRoleIds: settings.staffRoleIds,
         adminRoleIds: settings.adminRoleIds,
+        allowUserClose: settings.allowUserClose ?? false,
       });
     }
   }, [settings]);
@@ -92,6 +95,7 @@ export default function SettingsPage() {
         logChannelId: form.logChannelId,
         staffRoleIds: form.staffRoleIds,
         adminRoleIds: form.adminRoleIds,
+        allowUserClose: form.allowUserClose,
       });
     } finally {
       setSaving(false);
@@ -258,6 +262,7 @@ export default function SettingsPage() {
         logChannelId: form.logChannelId,
         staffRoleIds: form.staffRoleIds,
         adminRoleIds: form.adminRoleIds,
+        allowUserClose: form.allowUserClose,
       });
     } finally {
       setSaving(false);
@@ -284,6 +289,7 @@ export default function SettingsPage() {
     form.ticketCooldownSeconds !== settings.ticketCooldownSeconds ||
     form.ticketCategoryId !== settings.ticketCategoryId ||
     form.logChannelId !== settings.logChannelId ||
+    form.allowUserClose !== (settings.allowUserClose ?? false) ||
     JSON.stringify(form.staffRoleIds.sort()) !== JSON.stringify(settings.staffRoleIds.sort()) ||
     JSON.stringify(form.adminRoleIds.sort()) !== JSON.stringify(settings.adminRoleIds.sort());
 
@@ -384,6 +390,24 @@ export default function SettingsPage() {
                 onValueChange={(value) => setForm({ ...form, logChannelId: value })}
                 placeholder="Select log channel..."
               />
+            </div>
+            <Separator />
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="allowUserClose"
+                checked={form.allowUserClose}
+                onCheckedChange={(checked: boolean | "indeterminate") =>
+                  setForm({ ...form, allowUserClose: checked === true })
+                }
+              />
+              <div className="space-y-0.5">
+                <Label htmlFor="allowUserClose" className="cursor-pointer">
+                  Allow users to close their own tickets
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  When enabled, ticket creators can close their own tickets
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>

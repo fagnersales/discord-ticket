@@ -53,6 +53,9 @@ export default defineSchema({
     ticketCooldownSeconds: v.number(),
     blacklistedUserIds: v.array(discordSnowflake),
 
+    // Permissions
+    allowUserClose: v.boolean(), // Can users close their own tickets?
+
     // Counter for ticket numbering
     ticketCounter: v.number(),
   })
