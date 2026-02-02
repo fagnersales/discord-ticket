@@ -1,0 +1,8 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "bun install && cd packages/convex && bunx convex codegen"
+
+[deploy]
+startCommand = "bun run --filter=@discord-ticket/bot start"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
