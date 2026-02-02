@@ -1,12 +1,15 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useState } from "react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@discord-ticket/convex/convex/_generated/api";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChannelSelect } from "@/components/discord";
 import {
   LayoutPanelLeft,
   Edit,
@@ -15,6 +18,7 @@ import {
   MessageSquare,
   Terminal,
   Palette,
+  Send,
 } from "lucide-react";
 import type { Id } from "@discord-ticket/convex/convex/_generated/dataModel";
 
@@ -32,6 +36,26 @@ export default function PanelsPage() {
   const panelMessages = useQuery(api.ticketPanels.listMessagesByGuild, { guildId });
   const options = useQuery(api.ticketOptions.listByGuild, { guildId });
   const removePanel = useMutation(api.ticketPanels.remove);
+  const postPanel = useAction(api.panelActions.postPanel);
+
+  const [postingPanelId, setPostingPanelId] = useState<Id<"ticketPanels"> | null>(null);
+  const [postChannelId, setPostChannelId] = useState<string | undefined>(undefined);
+  const [openPopover, setOpenPopover] = useState<Id<"ticketPanels"> | null>(null);
+
+  const handlePost = async (panelId: Id<"ticketPanels">) => {
+    if (!postChannelId) return;
+    setPostingPanelId(panelId);
+    try {
+      await postPanel({ panelId, channelId: postChannelId });
+      setOpenPopover(null);
+      setPostChannelId(undefined);
+    } catch (error) {
+      console.error("Failed to post panel:", error);
+      alert("Failed to post panel. Make sure the bot has permission to send messages in that channel.");
+    } finally {
+      setPostingPanelId(null);
+    }
+  };
 
   if (panels === undefined || options === undefined || panelMessages === undefined) {
     return (
@@ -154,6 +178,41 @@ export default function PanelsPage() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2">
+                      <Popover
+                        open={openPopover === panel._id}
+                        onOpenChange={(open) => {
+                          setOpenPopover(open ? panel._id : null);
+                          if (!open) setPostChannelId(undefined);
+                        }}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="icon-sm">
+                            <Send className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-72">
+                          <div className="space-y-3">
+                            <p className="text-sm font-medium">Post panel to channel</p>
+                            <ChannelSelect
+                              guildId={guildId}
+                              mode="single"
+                              channelTypes={["text"]}
+                              value={postChannelId}
+                              onValueChange={setPostChannelId}
+                              placeholder="Select channel..."
+                            />
+                            <Button
+                              size="sm"
+                              className="w-full"
+                              disabled={!postChannelId || postingPanelId === panel._id}
+                              onClick={() => handlePost(panel._id)}
+                            >
+                              <Send className="mr-2 h-4 w-4" />
+                              {postingPanelId === panel._id ? "Posting..." : "Post"}
+                            </Button>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                       <Button variant="outline" size="icon-sm" asChild>
                         <Link href={`/dashboard/${guildId}/settings/panels/${panel._id}`}>
                           <Edit className="h-4 w-4" />
