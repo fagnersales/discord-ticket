@@ -2,6 +2,9 @@
   "name": "discord-ticket",
   "private": true,
   "packageManager": "bun@1.3.6",
+  "engines": {
+    "node": ">=20"
+  },
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "dev": "turbo dev",
