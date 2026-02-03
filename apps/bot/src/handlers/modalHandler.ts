@@ -75,15 +75,18 @@ async function handleTicketModal(
   const modalResponses: Array<{ fieldId: string; label: string; value: string }> = [];
 
   for (const row of interaction.data.components) {
-    for (const component of row.components) {
-      if ("custom_id" in component && "value" in component) {
-        // Find the field label from the option
-        const fieldConfig = option.modalFields?.find((f) => f.id === component.custom_id);
-        modalResponses.push({
-          fieldId: component.custom_id,
-          label: fieldConfig?.label ?? component.custom_id,
-          value: component.value,
-        });
+    // Modal action rows always have a components array with text inputs
+    if ("components" in row) {
+      for (const component of row.components) {
+        if ("custom_id" in component && "value" in component) {
+          // Find the field label from the option
+          const fieldConfig = option.modalFields?.find((f) => f.id === component.custom_id);
+          modalResponses.push({
+            fieldId: component.custom_id,
+            label: fieldConfig?.label ?? component.custom_id,
+            value: component.value,
+          });
+        }
       }
     }
   }

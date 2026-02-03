@@ -3,7 +3,7 @@ import {
   OverwriteType,
   PermissionFlagsBits,
   Routes,
-  type APIGuildTextChannel,
+  type APITextChannel,
   type RESTPostAPIGuildChannelJSONBody,
 } from "@discordjs/core";
 import { rest } from "../client";
@@ -19,7 +19,7 @@ export interface CreateTicketChannelOptions {
 
 export async function createTicketChannel(
   options: CreateTicketChannelOptions
-): Promise<APIGuildTextChannel> {
+): Promise<APITextChannel> {
   const { guildId, name, categoryId, creatorId, responsibleRoleIds, topic } = options;
 
   // Build permission overwrites
@@ -67,7 +67,7 @@ export async function createTicketChannel(
 
   return (await rest.post(Routes.guildChannels(guildId), {
     body,
-  })) as APIGuildTextChannel;
+  })) as APITextChannel;
 }
 
 export async function addUserToChannel(

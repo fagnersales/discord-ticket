@@ -1,8 +1,8 @@
-import type { APIMessage } from "@discordjs/core";
+import type { GatewayMessageUpdateDispatchData } from "@discordjs/core";
 import { convex } from "../convex";
 import { api } from "@discord-ticket/convex/convex/_generated/api";
 
-export async function handleMessageUpdate(message: APIMessage) {
+export async function handleMessageUpdate(message: GatewayMessageUpdateDispatchData) {
   // Ignore DMs
   if (!message.guild_id) return;
 

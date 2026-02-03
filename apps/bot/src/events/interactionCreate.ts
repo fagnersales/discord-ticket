@@ -14,6 +14,7 @@ import {
   type APIActionRowComponent,
   type APIButtonComponent,
   type APIStringSelectComponent,
+  type APIMessageComponentButtonInteraction,
 } from "@discordjs/core";
 import { rest } from "../client";
 import { convex } from "../convex";
@@ -28,7 +29,7 @@ export async function handleInteractionCreate(interaction: APIInteraction, api_:
   // Handle component interactions (buttons, selects)
   if (interaction.type === InteractionType.MessageComponent) {
     if (interaction.data.component_type === ComponentType.Button) {
-      await handleButtonInteraction(interaction, api_);
+      await handleButtonInteraction(interaction as APIMessageComponentButtonInteraction, api_);
     } else if (
       interaction.data.component_type === ComponentType.StringSelect ||
       interaction.data.component_type === ComponentType.UserSelect ||
